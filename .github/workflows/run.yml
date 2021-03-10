@@ -11,5 +11,6 @@ jobs:
       - name: Show dependencies
         run: sbt dependencyTree
       - name: Run
+        timeout-minutes: 5
         run: sbt run
 

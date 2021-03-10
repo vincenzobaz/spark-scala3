@@ -11,5 +11,5 @@ import org.apache.spark.sql.SparkSession
                    .reduceByKey(_ + _)
     counts.collect.foreach(println)
   finally
-    spark.close
+    spark.close()
 
