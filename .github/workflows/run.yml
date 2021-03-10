@@ -1,0 +1,14 @@
+name: Run
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: olafurpg/setup-scala@v10
+        with:
+          java-version: adopt@1.11
+      - name: Show dependencies
+        run: sbt dependencyTree
+      - name: Run
+        run: sbt run
+
