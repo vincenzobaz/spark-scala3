@@ -4,6 +4,7 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     steps:
+      - uses: actions/checkout@v2
       - uses: olafurpg/setup-scala@v10
         with:
           java-version: adopt@1.11
