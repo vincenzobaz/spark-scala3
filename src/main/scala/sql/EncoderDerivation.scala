@@ -7,7 +7,7 @@ import scala.compiletime.{constValue, erasedValue, summonInline, error}
 import org.apache.spark.sql.{Encoder, Encoders}
 import org.apache.spark.sql.types.{DataType, StructField, StructType}
 
-object EncoderDerivation extends App:
+object EncoderDerivation:
   given Encoder[Array[Byte]] = Encoders.BINARY
   given Encoder[String] = Encoders.STRING
   given Encoder[Boolean] = Encoders.scalaBoolean
@@ -23,11 +23,6 @@ object EncoderDerivation extends App:
   given Encoder[java.time.LocalDate] = Encoders.LOCALDATE
   given Encoder[java.math.BigDecimal] = Encoders.DECIMAL
 
-//  println(derived[Test0].schema) 
-//  println(derived[Test1].schema) 
-//  println(derived[Test2].schema) 
-//  println(derived[Test3].schema) 
-
   // TODO: Nullable field
   inline given derived[T](using m: Mirror.Of[T], ct: ClassTag[T]): Encoder[T] = inline m match
     case p: Mirror.ProductOf[T] => productEncoder(p, ct)
@@ -41,7 +36,7 @@ object EncoderDerivation extends App:
     case _: EmptyTuple => Nil
     case _: (t *: ts) => summonInline[Encoder[t]] :: summonEncodersFromTuple[ts]
     
-  private inline def productEncoder[T](mirror: Mirror.Of[T], ct: ClassTag[T]): Encoder[T] =
+  private inline def productEncoder[T](mirror: Mirror.ProductOf[T], ct: ClassTag[T]): Encoder[T] =
     val encoders: List[Encoder[_]] = summonEncodersFromTuple[mirror.MirroredElemTypes]
     val fieldNames: List[String] = getNames[mirror.MirroredElemLabels]
  
