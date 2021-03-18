@@ -1,4 +1,4 @@
-scalaVersion := "3.0.0-RC1"
+scalaVersion := dottyLatestNightlyBuild.get
 
 resolvers += "Spark Snapshots" at "https://repository.apache.org/content/repositories/snapshots"
 
