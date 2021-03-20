@@ -9,11 +9,11 @@ jobs:
         with:
           java-version: adopt@1.11
       - name: Show dependencies
-        run: sbt dependencyTree
+        run: sbt "encoders / dependencyTree"
       - name: Run WordCount
         timeout-minutes: 5
-        run: sbt "runMain rdd.wordcount"
+        run: sbt "examples / runMain rdd.wordcount"
       - name: Run EncoderYours
         timeout-minutes: 5
-        run: sbt "runMain sql.encoderMine"
+        run: sbt "examples / runMain sql.encoderMine"
 

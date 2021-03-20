@@ -40,7 +40,7 @@ object EncoderDerivation:
     val encoders: List[Encoder[_]] = summonEncodersFromTuple[mirror.MirroredElemTypes]
     val fieldNames: List[String] = getNames[mirror.MirroredElemLabels]
  
-    new Encoder[T] {
+    new Encoder[T]:
       override def clsTag: ClassTag[T] = ct
       override def schema: StructType =
         val fields = fieldNames.zip(encoders).map { (label, encoder) => 
@@ -50,4 +50,3 @@ object EncoderDerivation:
           StructField(label, dt)
         }
         StructType(fields)
-    }
