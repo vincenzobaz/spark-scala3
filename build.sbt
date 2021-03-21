@@ -6,6 +6,8 @@ val sparkCore = ("org.apache.spark" %% "spark-core" % sparkVersion).cross(CrossV
 val sparkSql = ("org.apache.spark" %% "spark-sql" % sparkVersion).cross(CrossVersion.for3Use2_13)
 val munit = "org.scalameta" %% "munit" % "0.7.22"
 
+val inputDirectory = Def.settingKey[File]("")
+
 lazy val encoders = project
   .in(file("encoders"))
   .settings(
@@ -17,7 +19,10 @@ lazy val encoders = project
 
 lazy val examples = project
   .in(file("examples"))
+  .enablePlugins(BuildInfoPlugin)
   .dependsOn(encoders)
   .settings(
+    inputDirectory := baseDirectory.value / "input",
+    buildInfoKeys := Seq[BuildInfoKey](inputDirectory),
     run / fork := true
   )
