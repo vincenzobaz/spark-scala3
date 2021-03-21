@@ -25,7 +25,5 @@ jobs:
       - name: Run WordCount
         timeout-minutes: 5
         run: sbt "examples / runMain rdd.wordcount"
-      - name: Run EncoderYours
-        timeout-minutes: 5
-        run: sbt "examples / runMain sql.encoderMine"
+
 
