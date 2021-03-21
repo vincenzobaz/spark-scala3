@@ -1,6 +1,6 @@
 package sql
 
-import org.apache.spark.sql.Encoder
+import org.apache.spark.sql.{Encoder, SparkSession}
 import org.apache.spark.sql.types._
 
 class EncoderDerivationSpec extends munit.FunSuite:
@@ -58,4 +58,13 @@ class EncoderDerivationSpec extends munit.FunSuite:
       )
     )
     assertEquals(summon[Encoder[Foo]].schema, expected)
+  }
+
+  test("encode dataset of case class Foo(x: String)") {
+    case class Foo(x: String)
+    val spark = SparkSession.builder().master("local").getOrCreate()
+    import spark.implicits._
+    val dataset = Seq(Foo("hello"), Foo("world")).toDS()
+    dataset.show()
+    spark.stop()
   }
