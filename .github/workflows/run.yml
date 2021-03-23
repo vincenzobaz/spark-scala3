@@ -4,13 +4,26 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout spark-scala3
+        uses: actions/checkout@v2
+      - name: Checkout munit
+        uses: actions/checkout@v2
+        with:
+          repository: scalameta/munit
+          ref: v0.7.22
+          path: munit
       - uses: olafurpg/setup-scala@v10
         with:
           java-version: adopt@1.11
+      - name: Publish local munit_3.0.0-RC2
+        working-directory: ./munit
+        run: sbt "++3.0.0-RC2-bin-20210319-b1f0b30-NIGHTLY!; munitJVM / publishLocal"
       - name: Show dependencies
-        run: sbt dependencyTree
-      - name: Run
+        run: sbt "encoders / dependencyTree"
+      - name: Run tests
+        run: sbt "encoders / test"
+      - name: Run WordCount
         timeout-minutes: 5
-        run: sbt run
+        run: sbt "examples / runMain rdd.wordcount"
+
 
