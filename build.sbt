@@ -11,10 +11,10 @@ val inputDirectory = Def.settingKey[File]("")
 lazy val encoders = project
   .in(file("encoders"))
   .settings(
-    libraryDependencies ++= Seq(
-      sparkSql,
-      munit % Test
-    )
+    libraryDependencies ++= Seq(sparkSql, munit % Test),
+    Test / parallelExecution := false,
+    // Test / fork := true,
+    // Test / javaOptions += "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=1044"
   )
 
 lazy val examples = project
