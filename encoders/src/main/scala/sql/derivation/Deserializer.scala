@@ -8,7 +8,10 @@ import org.apache.spark.sql.catalyst.expressions.{Expression, If, IsNull, Litera
 import org.apache.spark.sql.catalyst.expressions.objects.NewInstance
 import org.apache.spark.sql.catalyst.analysis.UnresolvedExtractValue
 import org.apache.spark.sql.catalyst.DeserializerBuildHelper.*
+import org.apache.spark.sql.catalyst.expressions.objects._
+
 import org.apache.spark.sql.types.*
+import org.apache.spark.sql.catalyst.WalkedTypePath
 
 trait Deserializer[T]:
   def inputType: DataType
@@ -30,10 +33,21 @@ object Deserializer:
     def deserialize(path: Expression): Expression =
       createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Long])
 
-  inline given derived[T](using m: Mirror.Of[T], ct: ClassTag[T]): Deserializer[T] = inline m match
-    case p: Mirror.ProductOf[T] => product(p, ct)
-    case s: Mirror.SumOf[T] => compiletime.error("Cannot derive Deserializer for Sum types")
-  
+  inline given derived[T](using m: Mirror.Of[T], ct: ClassTag[T]): Deserializer[T] = 
+    inline m match
+      case p: Mirror.ProductOf[T] => product(p, ct)
+      case p: Mirror.Of[Option[t]] => opt[t].asInstanceOf[Deserializer[T]]
+      case s: Mirror.SumOf[T] => compiletime.error("Cannot derive Deserializer for Sum types")
+
+  private inline def opt[T]: Deserializer[Option[T]] =
+    val m: Mirror.Of[T] = compiletime.summonInline[Mirror.Of[T]]
+    val ct: ClassTag[T] = compiletime.summonInline[ClassTag[T]]
+    val elDeserializer = derived[T](using m, ct)
+    new Deserializer[Option[T]]:
+      override def inputType: DataType = elDeserializer.inputType
+      override def deserialize(path: Expression): Expression =
+        WrapOption(elDeserializer.deserialize(path), elDeserializer.inputType)
+    
   // inspired by https://github.com/apache/spark/blob/39542bb81f8570219770bb6533c077f44f6cbd2a/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/ScalaReflection.scala#L356-L390
   private inline def product[T](mirror: Mirror.ProductOf[T], classTag: ClassTag[T]): Deserializer[T] = 
     val deserializers: List[Deserializer[?]] = summonTuple[mirror.MirroredElemTypes]
