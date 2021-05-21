@@ -26,22 +26,15 @@ object Serializer:
     def inputType: DataType = LongType
     def serialize(inputObject: Expression): Expression = inputObject
 
+  inline given deriveOpt[T](using s: Serializer[T]): Serializer[Option[T]] =
+    new Serializer[Option[T]]:
+      override def inputType: DataType = s.inputType
+      override def serialize(inputObject: Expression): Expression =
+        s.serialize(UnwrapOption(inputType, inputObject))
+
   inline given derived[T](using m: Mirror.Of[T], ct: ClassTag[T]): Serializer[T] = inline m match
     case p: Mirror.ProductOf[T] => product(p, ct)
-    case p: Mirror.Of[Option[t]] => 
-      println("I am deriving for " + compiletime.constValue[m.MirroredLabel])
-      opt[t].asInstanceOf[Serializer[T]]
     case s: Mirror.SumOf[T] => compiletime.error("cannot derive Serializer for Sum types")
-
-  private inline def opt[T]: Serializer[Option[T]] =
-    val m: Mirror.Of[T] = compiletime.summonInline[Mirror.Of[T]]
-    val ct: ClassTag[T] = compiletime.summonInline[ClassTag[T]]
-    val elSerializer = derived[T](using m, ct)
-    new Serializer[Option[T]]:
-      override def inputType: DataType = elSerializer.inputType
-      override def serialize(inputObject: Expression): Expression =
-        val unwrapped = UnwrapOption(inputType, inputObject)
-        elSerializer.serialize(unwrapped)
 
   // inspired by https://github.com/apache/spark/blob/39542bb81f8570219770bb6533c077f44f6cbd2a/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/ScalaReflection.scala#L575-L599
   private inline def product[T](mirror: Mirror.ProductOf[T], classTag: ClassTag[T]): Serializer[T] = 
