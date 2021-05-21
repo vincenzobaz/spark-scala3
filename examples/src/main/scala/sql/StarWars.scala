@@ -51,8 +51,8 @@ object StarWars extends App:
 
   case class Character(
     name: String, 
-    height: Integer, 
-    weight: Option[Integer], 
+    height: Int, 
+    weight: Option[Int], 
     eyecolor: Option[String], 
     haircolor: Option[String], 
     jedi: String,
@@ -73,8 +73,8 @@ object StarWars extends App:
 
   case class SW(
     name: String,
-    height: Integer,
-    weight: Option[Integer],
+    height: Int,
+    weight: Option[Int],
     eyecolor: Option[String],
     haircolor: Option[String],
     jedi: String,
