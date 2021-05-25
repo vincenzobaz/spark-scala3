@@ -18,6 +18,31 @@ trait Deserializer[T]:
   def deserialize(path: Expression): Expression
 
 object Deserializer:
+  given Deserializer[Double] with
+    def inputType: DataType = DoubleType
+    def deserialize(path: Expression): Expression =
+      createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Double])
+
+  given Deserializer[Float] with
+    def inputType: DataType = FloatType
+    def deserialize(path: Expression): Expression =
+      createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Float])
+
+  given Deserializer[Short] with
+    def inputType: DataType = ShortType
+    def deserialize(path: Expression): Expression =
+      createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Short])
+
+  given Deserializer[Byte] with
+    def inputType: DataType = ByteType
+    def deserialize(path: Expression): Expression =
+      createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Byte])
+
+  given Deserializer[Boolean] with
+    def inputType: DataType = BooleanType
+    def deserialize(path: Expression): Expression =
+      createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Boolean])
+  
   given Deserializer[String] with
     def inputType: DataType = StringType
     def deserialize(path: Expression): Expression = 

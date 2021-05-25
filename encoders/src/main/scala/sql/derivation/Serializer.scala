@@ -15,6 +15,31 @@ trait Serializer[T]:
   def serialize(inputObject: Expression): Expression
 
 object Serializer:
+  given Serializer[Double] with
+    def inputType: DataType = DoubleType
+    def serialize(inputObject: Expression): Expression =
+      createSerializerForDouble(inputObject)
+
+  given Serializer[Float] with
+    def inputType: DataType = FloatType
+    def serialize(inputObject: Expression): Expression =
+      createSerializerForFloat(inputObject)
+
+  given Serializer[Short] with
+    def inputType: DataType = ShortType
+    def serialize(inputObject: Expression): Expression =
+      createSerializerForShort(inputObject)
+
+  given Serializer[Byte] with
+    def inputType: DataType = ByteType
+    def serialize(inputObject: Expression): Expression =
+      createSerializerForByte(inputObject)
+
+  given Serializer[Boolean] with
+    def inputType: DataType = BooleanType
+    def serialize(inputObject: Expression): Expression =
+      createSerializerForBoolean(inputObject)
+ 
   given Serializer[String] with
     def inputType: DataType = ObjectType(classOf[String])
     def serialize(inputObject: Expression): Expression = createSerializerForString(inputObject)
