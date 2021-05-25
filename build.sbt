@@ -1,4 +1,5 @@
 ThisBuild / scalaVersion := "3.0.0"
+ThisBuild / name := "spark-scala3"
 ThisBuild / semanticdbEnabled := true
 ThisBuild / resolvers += "Spark Snapshots" at "https://repository.apache.org/content/repositories/snapshots"
 
@@ -13,9 +14,8 @@ val inputDirectory = Def.settingKey[File]("")
 lazy val encoders = project
   .in(file("encoders"))
   .settings(
-    name := "scala3-encoders",
+    name := "spark-scala3",
     organization := "io.vincenzobaz",
-    version := "0.1.0",
     libraryDependencies ++= Seq(sparkSql, munit % Test),
     Test / parallelExecution := false,
     // Test / fork := true,
@@ -27,7 +27,28 @@ lazy val examples = project
   .enablePlugins(BuildInfoPlugin)
   .dependsOn(encoders)
   .settings(
+    publish / skip := true,
     inputDirectory := baseDirectory.value / "input",
     buildInfoKeys := Seq[BuildInfoKey](inputDirectory),
     run / fork := true
   )
+
+inThisBuild(List(
+  organization := "io.github.vincenzobaz",
+  homepage := Some(url("https://github.com/vincenzobaz/spark-scala3")),
+  licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
+  developers := List(
+    Developer(
+      "vincenzobaz",
+      "Vincenzo Bazzucchi",
+      "bazzucchi.vincenzo@gmail.com",
+      url("https://github.com/vincenzobaz/")
+    ),
+    Developer(
+      "adpi2",
+      "Adrien Piquerez",
+      "adrien.piquerez@gmail.com",
+      url("https://github.com/adpi2")
+    )
+  )
+))
