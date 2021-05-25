@@ -13,9 +13,8 @@ val inputDirectory = Def.settingKey[File]("")
 lazy val encoders = project
   .in(file("encoders"))
   .settings(
-    name := "scala3-encoders",
+    name := "spark-scala3",
     organization := "io.vincenzobaz",
-    version := "0.1.0",
     libraryDependencies ++= Seq(sparkSql, munit % Test),
     Test / parallelExecution := false,
     // Test / fork := true,
@@ -31,3 +30,19 @@ lazy val examples = project
     buildInfoKeys := Seq[BuildInfoKey](inputDirectory),
     run / fork := true
   )
+
+inThisBuild(List(
+  organization := "io.github.vincenzobaz",
+  homepage := Some(url("https://github.com/vincenzobaz/spark-scala3")),
+  licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
+  developers := List(
+    Developer(
+      "vincenzobaz",
+      "Vincenzo Bazzucchi",
+    ),
+    Developer(
+      "adpi2",
+      "Adrien Piquerez"
+    )
+  )
+))
