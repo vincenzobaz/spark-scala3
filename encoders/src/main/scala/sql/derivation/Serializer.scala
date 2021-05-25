@@ -8,12 +8,33 @@ import org.apache.spark.sql.catalyst.expressions.{Expression, KnownNotNull}
 import org.apache.spark.sql.catalyst.expressions.objects.Invoke
 import org.apache.spark.sql.catalyst.SerializerBuildHelper.*
 import org.apache.spark.sql.types.*
+import org.apache.spark.sql.catalyst.expressions.objects.UnwrapOption
 
 trait Serializer[T]:
   def inputType: DataType
   def serialize(inputObject: Expression): Expression
 
 object Serializer:
+  given Serializer[Double] with
+    def inputType: DataType = DoubleType
+    def serialize(inputObject: Expression): Expression = inputObject
+
+  given Serializer[Float] with
+    def inputType: DataType = FloatType
+    def serialize(inputObject: Expression): Expression = inputObject
+
+  given Serializer[Short] with
+    def inputType: DataType = ShortType
+    def serialize(inputObject: Expression): Expression = inputObject
+
+  given Serializer[Byte] with
+    def inputType: DataType = ByteType
+    def serialize(inputObject: Expression): Expression = inputObject
+
+  given Serializer[Boolean] with
+    def inputType: DataType = BooleanType
+    def serialize(inputObject: Expression): Expression = inputObject
+ 
   given Serializer[String] with
     def inputType: DataType = ObjectType(classOf[String])
     def serialize(inputObject: Expression): Expression = createSerializerForString(inputObject)
@@ -24,6 +45,12 @@ object Serializer:
   given Serializer[Long] with
     def inputType: DataType = LongType
     def serialize(inputObject: Expression): Expression = inputObject
+
+  inline given deriveOpt[T](using s: Serializer[T]): Serializer[Option[T]] =
+    new Serializer[Option[T]]:
+      override def inputType: DataType = s.inputType
+      override def serialize(inputObject: Expression): Expression =
+        s.serialize(UnwrapOption(inputType, inputObject))
 
   inline given derived[T](using m: Mirror.Of[T], ct: ClassTag[T]): Serializer[T] = inline m match
     case p: Mirror.ProductOf[T] => product(p, ct)

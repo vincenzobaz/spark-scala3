@@ -8,13 +8,41 @@ import org.apache.spark.sql.catalyst.expressions.{Expression, If, IsNull, Litera
 import org.apache.spark.sql.catalyst.expressions.objects.NewInstance
 import org.apache.spark.sql.catalyst.analysis.UnresolvedExtractValue
 import org.apache.spark.sql.catalyst.DeserializerBuildHelper.*
+import org.apache.spark.sql.catalyst.expressions.objects._
+
 import org.apache.spark.sql.types.*
+import org.apache.spark.sql.catalyst.WalkedTypePath
 
 trait Deserializer[T]:
   def inputType: DataType
   def deserialize(path: Expression): Expression
 
 object Deserializer:
+  given Deserializer[Double] with
+    def inputType: DataType = DoubleType
+    def deserialize(path: Expression): Expression =
+      createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Double])
+
+  given Deserializer[Float] with
+    def inputType: DataType = FloatType
+    def deserialize(path: Expression): Expression =
+      createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Float])
+
+  given Deserializer[Short] with
+    def inputType: DataType = ShortType
+    def deserialize(path: Expression): Expression =
+      createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Short])
+
+  given Deserializer[Byte] with
+    def inputType: DataType = ByteType
+    def deserialize(path: Expression): Expression =
+      createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Byte])
+
+  given Deserializer[Boolean] with
+    def inputType: DataType = BooleanType
+    def deserialize(path: Expression): Expression =
+      createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Boolean])
+  
   given Deserializer[String] with
     def inputType: DataType = StringType
     def deserialize(path: Expression): Expression = 
@@ -30,10 +58,17 @@ object Deserializer:
     def deserialize(path: Expression): Expression =
       createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Long])
 
-  inline given derived[T](using m: Mirror.Of[T], ct: ClassTag[T]): Deserializer[T] = inline m match
-    case p: Mirror.ProductOf[T] => product(p, ct)
-    case s: Mirror.SumOf[T] => compiletime.error("Cannot derive Deserializer for Sum types")
-  
+  inline given deriveOpt[T](using d: Deserializer[T]): Deserializer[Option[T]] =
+    new Deserializer[Option[T]]:
+      override def inputType: DataType = d.inputType
+      override def deserialize(path: Expression): Expression =
+        WrapOption(d.deserialize(path), d.inputType)
+ 
+  inline given derived[T](using m: Mirror.Of[T], ct: ClassTag[T]): Deserializer[T] = 
+    inline m match
+      case p: Mirror.ProductOf[T] => product(p, ct)
+      case s: Mirror.SumOf[T] => compiletime.error("Cannot derive Deserializer for Sum types")
+
   // inspired by https://github.com/apache/spark/blob/39542bb81f8570219770bb6533c077f44f6cbd2a/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/ScalaReflection.scala#L356-L390
   private inline def product[T](mirror: Mirror.ProductOf[T], classTag: ClassTag[T]): Deserializer[T] = 
     val deserializers: List[Deserializer[?]] = summonTuple[mirror.MirroredElemTypes]
