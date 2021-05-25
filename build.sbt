@@ -1,5 +1,5 @@
 ThisBuild / scalaVersion := "3.0.0"
-ThisBuild / name := "spark-scala3",
+ThisBuild / name := "spark-scala3"
 ThisBuild / semanticdbEnabled := true
 ThisBuild / resolvers += "Spark Snapshots" at "https://repository.apache.org/content/repositories/snapshots"
 
