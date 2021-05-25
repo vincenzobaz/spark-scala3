@@ -13,7 +13,7 @@ val inputDirectory = Def.settingKey[File]("")
 lazy val encoders = project
   .in(file("encoders"))
   .settings(
-  name := "scala3-encoders",
+    name := "scala3-encoders",
     organization := "io.vincenzobaz",
     version := "0.1.0",
     libraryDependencies ++= Seq(sparkSql, munit % Test),
