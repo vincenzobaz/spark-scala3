@@ -1,16 +1,21 @@
-ThisBuild / scalaVersion := "3.0.0-RC2-bin-20210319-b1f0b30-NIGHTLY"
+ThisBuild / scalaVersion := "3.0.0"
+ThisBuild / semanticdbEnabled := true
 ThisBuild / resolvers += "Spark Snapshots" at "https://repository.apache.org/content/repositories/snapshots"
 
 val sparkVersion = "3.2.0-SNAPSHOT"
 val sparkCore = ("org.apache.spark" %% "spark-core" % sparkVersion).cross(CrossVersion.for3Use2_13)
 val sparkSql = ("org.apache.spark" %% "spark-sql" % sparkVersion).cross(CrossVersion.for3Use2_13)
-val munit = "org.scalameta" %% "munit" % "0.7.22"
+val munit = "org.scalameta" %% "munit" % "0.7.26"
 
 val inputDirectory = Def.settingKey[File]("")
+
 
 lazy val encoders = project
   .in(file("encoders"))
   .settings(
+    name := "scala3-encoders",
+    organization := "io.vincenzobaz",
+    version := "0.1.0",
     libraryDependencies ++= Seq(sparkSql, munit % Test),
     Test / parallelExecution := false,
     // Test / fork := true,
