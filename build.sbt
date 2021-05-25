@@ -39,10 +39,14 @@ inThisBuild(List(
     Developer(
       "vincenzobaz",
       "Vincenzo Bazzucchi",
+      "bazzucchi.vincenzo@gmail.com",
+      url("https://github.com/vincenzobaz/")
     ),
     Developer(
       "adpi2",
-      "Adrien Piquerez"
+      "Adrien Piquerez",
+      "adrien.piquerez@gmail.com",
+      url("https://github.com/adpi2")
     )
   )
 ))
