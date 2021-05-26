@@ -1,4 +1,4 @@
-package sql.derivation
+package scala3encoders.derivation
 
 import scala.compiletime
 import scala.deriving.Mirror

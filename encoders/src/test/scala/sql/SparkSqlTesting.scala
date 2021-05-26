@@ -1,4 +1,4 @@
-package sql
+package scala3encoders
 
 import org.apache.spark.sql.SparkSession
 
