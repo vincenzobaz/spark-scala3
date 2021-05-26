@@ -34,9 +34,11 @@ lazy val examples = project
   )
 
 inThisBuild(List(
+  licenses := Seq("APL2" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
   organization := "io.github.vincenzobaz",
   homepage := Some(url("https://github.com/vincenzobaz/spark-scala3")),
-  licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
+  sonatypeCredentialHost := "s01.oss.sonatype.org",
+  compile/doc/sources := Seq(),
   developers := List(
     Developer(
       "vincenzobaz",
