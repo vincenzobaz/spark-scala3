@@ -59,4 +59,6 @@ lazy val publishSettings = Def.settings(
     )
   ),
   sonatypeProjectHosting := Some(GitHubHosting("vincenzobaz", name.value, "bazzucchi.vincenzo@gmail.com")),
+  versionScheme := Some("early-semver"),
+  versionPolicyIntention := Compatibility.None
 )

@@ -11,6 +11,8 @@ jobs:
         with:
           fetch-depth: 0
       - uses: olafurpg/setup-scala@v10
+      - name: Check version policy
+        run: sbt versionPolicyCheck
       - run: sbt ci-release
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
