@@ -13,6 +13,7 @@ val inputDirectory = Def.settingKey[File]("")
 lazy val root = project
   .in(file("."))
   .aggregate(encoders, examples)
+  .settings(publish / skip := true)
   .settings(publishSettings)
 
 lazy val encoders = project
@@ -37,25 +38,26 @@ lazy val examples = project
 
 import xerial.sbt.Sonatype._
 lazy val publishSettings = Def.settings(
-    licenses := Seq("APL2" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
-    organization := "io.github.vincenzobaz",
-    homepage := Some(url("https://github.com/vincenzobaz/spark-scala3")),
-    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
-    sonatypeCredentialHost := "s01.oss.sonatype.org",
-    publishTo := sonatypePublishToBundle.value,
-    developers := List(
-      Developer(
-        "vincenzobaz",
-        "Vincenzo Bazzucchi",
-        "bazzucchi.vincenzo@gmail.com",
-        url("https://github.com/vincenzobaz/")
-      ),
-      Developer(
-        "adpi2",
-        "Adrien Piquerez",
-        "adrien.piquerez@gmail.com",
-        url("https://github.com/adpi2")
-      )
+  name := "spark-scala3",
+  licenses := Seq("APL2" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
+  organization := "io.github.vincenzobaz",
+  homepage := Some(url("https://github.com/vincenzobaz/spark-scala3")),
+  sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
+  sonatypeCredentialHost := "s01.oss.sonatype.org",
+  publishTo := sonatypePublishToBundle.value,
+  developers := List(
+    Developer(
+      "vincenzobaz",
+      "Vincenzo Bazzucchi",
+      "bazzucchi.vincenzo@gmail.com",
+      url("https://github.com/vincenzobaz/")
     ),
-    sonatypeProjectHosting := Some(GitHubHosting("vincenzobaz", name.value, "bazzucchi.vincenzo@gmail.com")),
+    Developer(
+      "adpi2",
+      "Adrien Piquerez",
+      "adrien.piquerez@gmail.com",
+      url("https://github.com/adpi2")
+    )
+  ),
+  sonatypeProjectHosting := Some(GitHubHosting("vincenzobaz", name.value, "bazzucchi.vincenzo@gmail.com")),
 )
