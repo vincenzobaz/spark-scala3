@@ -1,10 +1,8 @@
-package sql
+package scala3encoders
 
 import org.apache.spark.sql.Encoder
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
-
-import EncoderDerivation.given
 
 case class A()
 case class B(x: String)
