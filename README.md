@@ -37,7 +37,9 @@ type require an implicit (`given` in Scala 3 parlance) instance of `Encoder[T]`.
 
 These instances are automatically derived when you use:
 
-```scala import sqlContext.implicits._```
+```
+scala import sqlContext.implicits._
+```
 
 Unfortunately this derivation relies on Scala 2.13 runtime reflection which is
 not supported in Scala 3.
