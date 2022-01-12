@@ -14,15 +14,14 @@ Add the following dependency to your `build.sbt`:
 ## Apache Spark version
 
 As Scala 3 can use Scala 2.13 libraries, your Spark-Scala3 project needs a Spark
-version published for 2.13. As of now, Spark 3.2 is scheduled to be compatible
-with Scala 2.13 and the Apache Spark team publishes a Snapshot version of 3.2.
+version published for 2.13. Spark 3.2+ is compatible with Scala 2.13.
 
 You can add it in your `build.sbt` with:
 
 ```scala
 ThisBuild / resolvers += "Spark Snapshots" at "https://repository.apache.org/content/repositories/snapshots"
 
-val sparkVersion = "3.2.0-SNAPSHOT"
+val sparkVersion = "3.2.0"
 
 libraryDependencies ++= Seq(
   ("org.apache.spark" %% "spark-core" % sparkVersion).cross(CrossVersion.for3Use2_13),
