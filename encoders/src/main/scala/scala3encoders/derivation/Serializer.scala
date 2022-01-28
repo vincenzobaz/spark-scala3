@@ -52,9 +52,9 @@ object Serializer:
       override def serialize(inputObject: Expression): Expression =
         s.serialize(UnwrapOption(inputType, inputObject))
 
-  inline given deriveSeq[T](using s: Serializer[T], ct: ClassTag[T]): Serializer[Seq[T]] =
+  inline given deriveSeq[F[_], T](using s: Serializer[T], ct: ClassTag[T])(using F[T] <:< Seq[T]): Serializer[F[T]] =
     // TODO: Nullable fields without reflection
-    new Serializer[Seq[T]]:
+    new Serializer[F[T]]:
       override def inputType: DataType = ArrayType(s.inputType)
       override def serialize(inputObject: Expression): Expression =
         s.inputType match
@@ -70,13 +70,13 @@ object Serializer:
           case dt => createSerializerForGenericArray(inputObject, dt, nullable = true)
 
   inline given deriveArray[T: Serializer: ClassTag]: Serializer[Array[T]] =
-    val forSeq = deriveSeq[T]
+    val forSeq = deriveSeq[List, T]
     new Serializer[Array[T]]:
       override def inputType: DataType = forSeq.inputType
       override def serialize(inputObject: Expression) = forSeq.serialize(inputObject)
 
   inline given deriveSet[T: Serializer : ClassTag]: Serializer[Set[T]] =
-    val forSeq = deriveSeq[T]
+    val forSeq = deriveSeq[List, T]
     new Serializer[Set[T]]:
       override def inputType: DataType = forSeq.inputType
       override def serialize(inputObject: Expression) =
@@ -103,12 +103,8 @@ object Serializer:
           )
         )
 
-  inline given derived[T](using m: Mirror.Of[T], ct: ClassTag[T]): Serializer[T] = inline m match
-    case p: Mirror.ProductOf[T] => product(p, ct)
-    case s: Mirror.SumOf[T] => compiletime.error("cannot derive Serializer for Sum types")
-
   // inspired by https://github.com/apache/spark/blob/39542bb81f8570219770bb6533c077f44f6cbd2a/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/ScalaReflection.scala#L575-L599
-  private inline def product[T](mirror: Mirror.ProductOf[T], classTag: ClassTag[T]): Serializer[T] = 
+  inline given derivedProduct[T](using mirror: Mirror.ProductOf[T], classTag: ClassTag[T]): Serializer[T] =
     val serializers: List[Serializer[?]] = summonTuple[mirror.MirroredElemTypes]
     val labels: List[String] = getElemLabels[mirror.MirroredElemLabels]
     new Serializer[T]:

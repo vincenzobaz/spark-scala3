@@ -95,9 +95,9 @@ object Deserializer:
 
         Invoke(arrayData, methodName, arrayClass, returnNullable = true)
 
-  inline given deriveSeq[T](using d: Deserializer[T], ct: ClassTag[T]): Deserializer[Seq[T]] =
+  inline given deriveSeq[F[_], T](using d: Deserializer[T], ct: ClassTag[T])(using F[T] <:< Seq[T]): Deserializer[F[T]] =
     // TODO: Nullable
-    new Deserializer[Seq[T]]:
+    new Deserializer[F[T]]:
       override def inputType: DataType = ArrayType(d.inputType)
       override def deserialize(path: Expression): Expression =
         val mapFunction: Expression => Expression = element =>
@@ -112,7 +112,7 @@ object Deserializer:
         UnresolvedMapObjects(mapFunction, path, Some(cls))
 
   inline given derivedSet[T: Deserializer : ClassTag]: Deserializer[Set[T]] =
-    val forSeq = deriveSeq[T]
+    val forSeq = deriveSeq[List, T]
     new Deserializer[Set[T]]:
       override def inputType: DataType = forSeq.inputType
       override def deserialize(path: Expression): Expression = forSeq.deserialize(path)
@@ -128,13 +128,8 @@ object Deserializer:
           ct.runtimeClass
         )
 
-  inline given derived[T](using m: Mirror.Of[T], ct: ClassTag[T]): Deserializer[T] = 
-    inline m match
-      case p: Mirror.ProductOf[T] => product(p, ct)
-      case s: Mirror.SumOf[T] => compiletime.error("Cannot derive Deserializer for Sum types")
-
   // inspired by https://github.com/apache/spark/blob/39542bb81f8570219770bb6533c077f44f6cbd2a/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/ScalaReflection.scala#L356-L390
-  private inline def product[T](mirror: Mirror.ProductOf[T], classTag: ClassTag[T]): Deserializer[T] = 
+  inline given derivedProduct[T](using mirror: Mirror.ProductOf[T], classTag: ClassTag[T]): Deserializer[T] = 
     val deserializers: List[Deserializer[?]] = summonTuple[mirror.MirroredElemTypes]
     val labels: List[String] = getElemLabels[mirror.MirroredElemLabels]
     val fields = labels.zip(deserializers)
