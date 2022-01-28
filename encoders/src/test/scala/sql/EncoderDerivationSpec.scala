@@ -80,6 +80,26 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
     assertEquals(input.toDS.collect.toSeq, input)
   }
 
+  test("List[Int]") {
+    val ls = List(List(1,2,3), List(4,5,6))
+    assertEquals(ls.toDS.collect().toList, ls)
+  }
+
+  test("List[case class]") {
+    case class Sequence(id: Int, nums: List[Int])
+
+    val seq1 = Sequence(0, 2 :: 3 :: Nil)
+    val seq2 = Sequence(1, 4 :: 5 :: Nil)
+    val seq3 = Sequence(2, 7 :: 8 :: 9 :: Nil)
+
+    val seqs = seq1 :: seq2 :: seq3 :: Nil
+
+    assertEquals(
+      seqs.toDS.collect().toList,
+      seqs
+    )
+  }
+
   test("Issue 14") {
     case class City(name: String, lat: Double, lon: Double)
     case class Journey(id: Int, cities: List[City])
@@ -91,8 +111,9 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
 
     val trip1 = Journey(0, rome :: paris :: Nil)
     val trip2 = Journey(1, berlin :: madrid :: Nil)
+    val trip3 = Journey(2, berlin :: madrid :: paris :: Nil)
 
-    val trips = trip1 :: trip2 :: Nil
+    val trips = trip1 :: trip2 :: trip3 :: Nil
 
     val idsIncrement = trips.toDS.map(tr => tr.copy(id = tr.id + 1))
 
