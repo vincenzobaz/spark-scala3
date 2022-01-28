@@ -10,7 +10,7 @@ import org.apache.spark.sql._
 object StarWars extends App:
   val spark = SparkSession.builder().master("local").getOrCreate
   import spark.implicits.localSeqToDatasetHolder
-  import EncoderDerivation.given
+  import scala3encoders.given
 
   extension [T: Encoder] (seq: Seq[T])
     def toDS: Dataset[T] =
