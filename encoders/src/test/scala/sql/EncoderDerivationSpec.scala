@@ -9,19 +9,19 @@ case class B(x: String)
 case class C(x: Int, y: Long)
 case class D(x: String, y: B)
 
-class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
-  private val dSchema = 
-    StructType(
-      Seq(
-        StructField("x", StringType),
-        StructField("y", StructType(Seq(StructField("x", StringType))))
-      )
+val dSchema =
+  StructType(
+    Seq(
+      StructField("x", StringType),
+      StructField("y", StructType(Seq(StructField("x", StringType))))
     )
+  )
 
+class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
   test("derive encoder of case class A()") {
     val encoder = summon[Encoder[A]]
     assertEquals(encoder.schema, StructType(Seq.empty))
-    
+
     val input = Seq(A(), A())
     assertEquals(input.toDS.collect.toSeq, input)
   }
@@ -49,11 +49,14 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
       )
     )
 
-    val input = Seq(C(42, -9_223_372_036_854_775_808L), C(0, 9_223_372_036_854_775_807L))
+    val input =
+      Seq(C(42, -9_223_372_036_854_775_808L), C(0, 9_223_372_036_854_775_807L))
     assertEquals(input.toDS.collect.toSeq, input)
   }
 
-  test("derive encoder of case class D(x: String, y: B) where B is case class B(x: String)") {
+  test(
+    "derive encoder of case class D(x: String, y: B) where B is case class B(x: String)"
+  ) {
     val encoder = summon[Encoder[D]]
     assertEquals(
       encoder.schema,
@@ -69,105 +72,32 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
     assertEquals(input.toDS.collect.toSeq, input)
   }
 
-  test("derive encoder of Seq") {
-    val encoderBase = summon[Encoder[Seq[Int]]]
-    assertEquals(
-      encoderBase.schema,
-      StructType(
-        Seq(
-          StructField("value", ArrayType(IntegerType, true), true)
-        )
-      )
-    )
+  test("derive encoder of case class A()") {
+    val encoder = summon[Encoder[A]]
+    assertEquals(encoder.schema, StructType(Seq.empty))
 
-    val encoderAdv = summon[Encoder[Seq[D]]]
-    assertEquals(
-      encoderAdv.schema,
-      StructType(
-        Seq(
-          StructField("value", ArrayType(dSchema, true), true)
-        )
-      )
-    )
-
+    val input = Seq(A(), A())
+    assertEquals(input.toDS.collect.toSeq, input)
   }
 
-  test("derive encoder of Set") {
-    val encoderBase = summon[Encoder[Set[Int]]]
-    assertEquals(
-      encoderBase.schema,
-      StructType(
-        Seq(
-          StructField("value", ArrayType(IntegerType, true), true)
-        )
-      )
-    )
+  test("Issue 14") {
+    case class City(name: String, lat: Double, lon: Double)
+    case class Journey(id: Int, cities: List[City])
 
-    val encoderAdv = summon[Encoder[Set[D]]]
-    assertEquals(
-      encoderAdv.schema,
-      StructType(
-        Seq(
-          StructField("value", ArrayType(dSchema, true), true)
-        )
-      )
-    )
-  }
+    val rome = City("Rome", 41.9, 12.49)
+    val paris = City("Paris", 48.8, 2.34)
+    val berlin = City("Berlin", 52.52, 13.40)
+    val madrid = City("Madrid", 40.41, -3.70)
 
-  test("derive encoder of Array") {
-    val encoderBase = summon[Encoder[Array[Int]]]
-    assertEquals(
-      encoderBase.schema,
-      StructType(
-        Seq(
-          StructField("value", ArrayType(IntegerType, false), true)
-        )
-      )
-    )
+    val trip1 = Journey(0, rome :: paris :: Nil)
+    val trip2 = Journey(1, berlin :: madrid :: Nil)
 
-    val encoderAdv = summon[Encoder[Array[D]]]
-    assertEquals(
-      encoderAdv.schema,
-      StructType(
-        Seq(
-          StructField("value", ArrayType(dSchema, true), true)
-        )
-      )
-    )
-  }
+    val trips = trip1 :: trip2 :: Nil
 
-  test("derive encoder of Map") {
-    val encoderBase = summon[Encoder[Map[Int, String]]]
-    assertEquals(
-      encoderBase.schema,
-      StructType(
-        Seq(
-          StructField(
-            "value",
-            MapType(
-              IntegerType,
-              StringType,
-              true
-            )
-          )
-        )
-      )
-    )
+    val idsIncrement = trips.toDS.map(tr => tr.copy(id = tr.id + 1))
 
-    val encoderAdv = summon[Encoder[Map[D, D]]]
     assertEquals(
-      encoderAdv.schema,
-      StructType(
-        Seq(
-          StructField(
-            "value",
-            MapType(
-              dSchema,
-              dSchema,
-              true
-            )
-          )
-        )
-      )
+      idsIncrement.collect().toList,
+      trips.map(tr => tr.copy(id = tr.id + 1))
     )
   }
