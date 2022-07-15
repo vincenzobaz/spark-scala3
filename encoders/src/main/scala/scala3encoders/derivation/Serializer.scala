@@ -10,6 +10,8 @@ import org.apache.spark.sql.catalyst.SerializerBuildHelper.*
 import org.apache.spark.sql.types.*
 import org.apache.spark.sql.catalyst.expressions.objects.UnwrapOption
 
+import java.sql.Date
+
 trait Serializer[T]:
   def inputType: DataType
   def serialize(inputObject: Expression): Expression
@@ -42,6 +44,11 @@ object Serializer:
   given Serializer[Int] with
     def inputType: DataType = IntegerType
     def serialize(inputObject: Expression): Expression = inputObject
+
+  given Serializer[Date] with
+    def inputType: DataType = DateType
+    def serialize(inputObject: Expression): Expression = inputObject
+
   given Serializer[Long] with
     def inputType: DataType = LongType
     def serialize(inputObject: Expression): Expression = inputObject
