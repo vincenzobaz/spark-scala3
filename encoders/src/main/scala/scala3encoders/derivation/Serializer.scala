@@ -4,7 +4,7 @@ import scala.compiletime
 import scala.deriving.Mirror
 import scala.reflect.ClassTag
 import org.apache.spark.sql.catalyst.expressions.{Expression, KnownNotNull}
-import org.apache.spark.sql.catalyst.expressions.objects.{Invoke, StaticInvoke, UnwrapOption}
+import org.apache.spark.sql.catalyst.expressions.objects.{Invoke, UnwrapOption}
 import org.apache.spark.sql.catalyst.SerializerBuildHelper.*
 import org.apache.spark.sql.types.*
 
