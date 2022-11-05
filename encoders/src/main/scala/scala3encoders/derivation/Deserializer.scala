@@ -75,7 +75,7 @@ object Deserializer:
       given Deserializer[BigInt] with
         def inputType: DataType = decimalType
         def deserialize(path: Expression): Expression =
-          Invoke(path, "toScalaBigInt", ObjectType(classOf[scala.math.BigInt]), returnNullable = false)
+          createDeserializerForScalaBigInt(path)
 
   inline given deriveOpt[T](using d: Deserializer[T]): Deserializer[Option[T]] =
     new Deserializer[Option[T]]:

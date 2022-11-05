@@ -55,13 +55,7 @@ object Serializer:
       given Serializer[BigInt] with
         def inputType: DataType = ObjectType(classOf[BigInt])
         def serialize(inputObject: Expression): Expression =
-          StaticInvoke(
-            Decimal.getClass,
-            decimalType,
-            "apply",
-            inputObject :: Nil,
-            returnNullable = false
-          )
+          createSerializerForScalaBigInt(inputObject)
 
   inline given deriveOpt[T](using s: Serializer[T]): Serializer[Option[T]] =
     new Serializer[Option[T]]:
