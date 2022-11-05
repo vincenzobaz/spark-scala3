@@ -2,4 +2,6 @@
 .bsp
 .metals
 .vscode
+.idea
 **/target
+*.semanticdb
