@@ -1,10 +1,10 @@
-ThisBuild / scalaVersion := "3.1.1"
+ThisBuild / scalaVersion := "3.2.1"
 ThisBuild / semanticdbEnabled := true
 
-val sparkVersion = "3.2.0"
+val sparkVersion = "3.3.1"
 val sparkCore = ("org.apache.spark" %% "spark-core" % sparkVersion).cross(CrossVersion.for3Use2_13)
 val sparkSql = ("org.apache.spark" %% "spark-sql" % sparkVersion).cross(CrossVersion.for3Use2_13)
-val munit = "org.scalameta" %% "munit" % "0.7.26"
+val munit = "org.scalameta" %% "munit" % "0.7.29"
 
 val inputDirectory = Def.settingKey[File]("")
 

@@ -58,6 +58,41 @@ object Deserializer:
     def deserialize(path: Expression): Expression =
       createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Long])
 
+  object bigInt:
+    object long:
+      given Deserializer[BigInt] with
+        def inputType: DataType = LongType
+        def deserialize(path: Expression): Expression =
+          StaticInvoke(
+            BigInt.getClass,
+            ObjectType(classOf[BigInt]),
+            "apply",
+            path :: Nil,
+            returnNullable = false
+          )
+
+      given Serializer[BigInt] with
+        def inputType: DataType = ObjectType(classOf[BigInt])
+        def serialize(inputObject: Expression): Expression =
+          Invoke(inputObject, "longValue", LongType, returnNullable = false)
+
+    object decimal:
+      given Deserializer[BigInt] with
+        def inputType: DataType = decimalType
+        def deserialize(path: Expression): Expression =
+          Invoke(path, "toScalaBigInt", ObjectType(classOf[scala.math.BigInt]), returnNullable = false)
+
+      given Serializer[BigInt] with
+        def inputType: DataType = ObjectType(classOf[BigInt])
+        def serialize(inputObject: Expression): Expression =
+          StaticInvoke(
+            Decimal.getClass,
+            decimalType,
+            "apply",
+            inputObject :: Nil,
+            returnNullable = false
+          )
+
   inline given deriveOpt[T](using d: Deserializer[T]): Deserializer[Option[T]] =
     new Deserializer[Option[T]]:
       override def inputType: DataType = d.inputType

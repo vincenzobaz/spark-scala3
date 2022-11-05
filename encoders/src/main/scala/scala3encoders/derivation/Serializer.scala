@@ -3,12 +3,10 @@ package scala3encoders.derivation
 import scala.compiletime
 import scala.deriving.Mirror
 import scala.reflect.ClassTag
-
 import org.apache.spark.sql.catalyst.expressions.{Expression, KnownNotNull}
-import org.apache.spark.sql.catalyst.expressions.objects.Invoke
+import org.apache.spark.sql.catalyst.expressions.objects.{Invoke, StaticInvoke, UnwrapOption}
 import org.apache.spark.sql.catalyst.SerializerBuildHelper.*
 import org.apache.spark.sql.types.*
-import org.apache.spark.sql.catalyst.expressions.objects.UnwrapOption
 
 trait Serializer[T]:
   def inputType: DataType
@@ -45,6 +43,25 @@ object Serializer:
   given Serializer[Long] with
     def inputType: DataType = LongType
     def serialize(inputObject: Expression): Expression = inputObject
+
+  object bigInt:
+    object long:
+      given Serializer[BigInt] with
+        def inputType: DataType = ObjectType(classOf[BigInt])
+        def serialize(inputObject: Expression): Expression =
+          Invoke(inputObject, "longValue", LongType, returnNullable = false)
+
+    object decimal:
+      given Serializer[BigInt] with
+        def inputType: DataType = ObjectType(classOf[BigInt])
+        def serialize(inputObject: Expression): Expression =
+          StaticInvoke(
+            Decimal.getClass,
+            decimalType,
+            "apply",
+            inputObject :: Nil,
+            returnNullable = false
+          )
 
   inline given deriveOpt[T](using s: Serializer[T]): Serializer[Option[T]] =
     new Serializer[Option[T]]:

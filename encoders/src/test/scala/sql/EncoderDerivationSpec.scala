@@ -1,13 +1,15 @@
 package scala3encoders
 
 import org.apache.spark.sql.Encoder
-import org.apache.spark.sql.types._
+import org.apache.spark.sql.types.*
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
+import scala3encoders.derivation.decimalType
 
 case class A()
 case class B(x: String)
 case class C(x: Int, y: Long)
 case class D(x: String, y: B)
+case class E(x: String, y: BigInt)
 
 class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
   test("derive encoder of case class A()") {
@@ -58,5 +60,41 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
     )
 
     val input = Seq(D("Hello", B("World")), D("Bye", B("Universe")))
+    assertEquals(input.toDS.collect.toSeq, input)
+  }
+
+  test("derive encoder of case class E(x: String, y: BigInt) where y fits into Long") {
+    import derivation.Deserializer.bigInt.long.given
+    import derivation.Serializer.bigInt.long.given
+    val encoder = summon[Encoder[E]].asInstanceOf[ExpressionEncoder[E]]
+    assertEquals(
+      encoder.schema,
+      StructType(
+        Seq(
+          StructField("x", StringType),
+          StructField("y", LongType)
+        )
+      )
+    )
+
+    val input = Seq(E("hello", -9_223_372_036_854_775_808L), E("world", 9_223_372_036_854_775_807L))
+    assertEquals(input.toDS.collect.toSeq, input)
+  }
+
+  test("derive encoder of case class E(x: String, y: BigInt) where y doesn't fit into Long") {
+    import derivation.Deserializer.bigInt.decimal.given
+    import derivation.Serializer.bigInt.decimal.given
+    val encoder = summon[Encoder[E]].asInstanceOf[ExpressionEncoder[E]]
+    assertEquals(
+      encoder.schema,
+      StructType(
+        Seq(
+          StructField("x", StringType),
+          StructField("y", decimalType)
+        )
+      )
+    )
+
+    val input = Seq(E("hello", BigInt("1000000000000000000000000")), E("world", BigInt("2000000000000000000000000")))
     assertEquals(input.toDS.collect.toSeq, input)
   }
