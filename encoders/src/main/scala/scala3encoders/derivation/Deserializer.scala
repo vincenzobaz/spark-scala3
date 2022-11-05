@@ -71,27 +71,11 @@ object Deserializer:
             returnNullable = false
           )
 
-      given Serializer[BigInt] with
-        def inputType: DataType = ObjectType(classOf[BigInt])
-        def serialize(inputObject: Expression): Expression =
-          Invoke(inputObject, "longValue", LongType, returnNullable = false)
-
     object decimal:
       given Deserializer[BigInt] with
         def inputType: DataType = decimalType
         def deserialize(path: Expression): Expression =
           Invoke(path, "toScalaBigInt", ObjectType(classOf[scala.math.BigInt]), returnNullable = false)
-
-      given Serializer[BigInt] with
-        def inputType: DataType = ObjectType(classOf[BigInt])
-        def serialize(inputObject: Expression): Expression =
-          StaticInvoke(
-            Decimal.getClass,
-            decimalType,
-            "apply",
-            inputObject :: Nil,
-            returnNullable = false
-          )
 
   inline given deriveOpt[T](using d: Deserializer[T]): Deserializer[Option[T]] =
     new Deserializer[Option[T]]:
