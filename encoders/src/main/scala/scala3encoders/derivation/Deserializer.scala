@@ -11,6 +11,7 @@ import org.apache.spark.sql.catalyst.DeserializerBuildHelper.*
 import org.apache.spark.sql.catalyst.expressions.objects._
 
 import org.apache.spark.sql.types.*
+import org.apache.spark.sql.catalyst.ScalaReflection
 import org.apache.spark.sql.catalyst.WalkedTypePath
 
 trait Deserializer[T]:
@@ -63,13 +64,14 @@ object Deserializer:
     def deserialize(path: Expression): Expression =
       createDeserializerForInstant(path)
       
-  inline given deriveOpt[T](using d: Deserializer[T], ct: ClassTag[T]): Deserializer[Option[T]] =
+  given deriveOpt[T](using d: Deserializer[T], ct: ClassTag[T]): Deserializer[Option[T]] =
     new Deserializer[Option[T]]:
       override def inputType: DataType = 
         ObjectType(ct.runtimeClass)
         
       override def deserialize(path: Expression): Expression =
-        WrapOption(d.deserialize(path), inputType)
+        val tpe = ScalaReflection.typeBoxedJavaMapping.getOrElse(d.inputType, ct.runtimeClass)
+        WrapOption(d.deserialize(path), ObjectType(tpe))
 
   given deriveArray[T](using d: Deserializer[T], ct: ClassTag[T]): Deserializer[Array[T]] =
     // TODO: nullable. walked

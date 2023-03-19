@@ -51,13 +51,12 @@ object Serializer:
     def inputType: DataType                            = ObjectType(classOf[java.time.Instant])
     def serialize(inputObject: Expression): Expression = createSerializerForJavaInstant(inputObject)
 
-  inline given deriveOpt[T](using s: Serializer[T], ct: ClassTag[T]): Serializer[Option[T]] =
+  inline given deriveOpt[T](using s: Serializer[T], ct: ClassTag[Option[T]]): Serializer[Option[T]] =
     new Serializer[Option[T]]:
       override def inputType: DataType = 
-        ObjectType(classOf[Option[T]])
+        ObjectType(ct.runtimeClass)
       override def serialize(inputObject: Expression): Expression =
-        // TOOD serialize basic types
-        s.serialize(UnwrapOption(ObjectType(ct.runtimeClass), inputObject))
+        s.serialize(UnwrapOption(s.inputType, inputObject))
         
 
   given deriveSeq[F[_], T](using s: Serializer[T], ct: ClassTag[F[T]])(using F[T] <:< Seq[T]): Serializer[F[T]] =

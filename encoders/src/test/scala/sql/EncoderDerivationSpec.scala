@@ -84,8 +84,7 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
     val encoder = summon[Encoder[E]]
     val input = Seq(E(Map("a" -> Seq("foo", "bar")), Array(1,2,3,4,5), Set(1.0, 2.0), java.time.Instant.now(), Some("whoo"), None),
       E(null, Array(1,2), Set(1.0, 2.0), java.time.Instant.now(), None, Some(1L)))
-    val ds = input.toDS
-    val res = ds.collect.toSeq
+    val res = input.toDS.collect.toSeq
     assertEquals(res.map(_.x), input.map(_.x))
     assert(res.map(_.y).zip(input.map(_.y)).forall(y => y._1.sameElements(y._2)))
     assertEquals(res.map(_.z), input.map(_.z))
