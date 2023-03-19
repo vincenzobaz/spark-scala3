@@ -1,7 +1,7 @@
-ThisBuild / scalaVersion := "3.1.0"
+ThisBuild / scalaVersion := "3.2.2"
 ThisBuild / semanticdbEnabled := true
 
-val sparkVersion = "3.2.0"
+val sparkVersion = "3.3.2"
 val sparkCore = ("org.apache.spark" %% "spark-core" % sparkVersion).cross(CrossVersion.for3Use2_13)
 val sparkSql = ("org.apache.spark" %% "spark-sql" % sparkVersion).cross(CrossVersion.for3Use2_13)
 val munit = "org.scalameta" %% "munit" % "0.7.26"
@@ -31,6 +31,7 @@ lazy val examples = project
     publish / skip := true,
     inputDirectory := baseDirectory.value / "input",
     buildInfoKeys := Seq[BuildInfoKey](inputDirectory),
+    libraryDependencies ++= Seq(sparkSql),
     run / fork := true
   ).settings(publishSettings)
 
