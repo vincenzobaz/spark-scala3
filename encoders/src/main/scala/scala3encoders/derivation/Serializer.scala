@@ -42,20 +42,28 @@ object Serializer:
   given Serializer[Int] with
     def inputType: DataType = IntegerType
     def serialize(inputObject: Expression): Expression = inputObject
+
   given Serializer[Long] with
     def inputType: DataType = LongType
     def serialize(inputObject: Expression): Expression = inputObject
 
-  inline given deriveOpt[T](using s: Serializer[T]): Serializer[Option[T]] =
-    new Serializer[Option[T]]:
-      override def inputType: DataType = s.inputType
-      override def serialize(inputObject: Expression): Expression =
-        s.serialize(UnwrapOption(inputType, inputObject))
+  given instantSerializer: Serializer[java.time.Instant] with
+    def inputType: DataType                            = ObjectType(classOf[java.time.Instant])
+    def serialize(inputObject: Expression): Expression = createSerializerForJavaInstant(inputObject)
 
-  inline given deriveSeq[F[_], T](using s: Serializer[T], ct: ClassTag[T])(using F[T] <:< Seq[T]): Serializer[F[T]] =
+  inline given deriveOpt[T](using s: Serializer[T], ct: ClassTag[T]): Serializer[Option[T]] =
+    new Serializer[Option[T]]:
+      override def inputType: DataType = 
+        ObjectType(classOf[Option[T]])
+      override def serialize(inputObject: Expression): Expression =
+        // TOOD serialize basic types
+        s.serialize(UnwrapOption(ObjectType(ct.runtimeClass), inputObject))
+        
+
+  given deriveSeq[F[_], T](using s: Serializer[T], ct: ClassTag[F[T]])(using F[T] <:< Seq[T]): Serializer[F[T]] =
     // TODO: Nullable fields without reflection
     new Serializer[F[T]]:
-      override def inputType: DataType = ArrayType(s.inputType)
+      override def inputType: DataType = ObjectType(classOf[Seq[T]])
       override def serialize(inputObject: Expression): Expression =
         s.inputType match
           case dt: ObjectType => 
@@ -72,13 +80,13 @@ object Serializer:
   inline given deriveArray[T: Serializer: ClassTag]: Serializer[Array[T]] =
     val forSeq = deriveSeq[List, T]
     new Serializer[Array[T]]:
-      override def inputType: DataType = forSeq.inputType
+      override def inputType: DataType = ObjectType(classOf[Array[T]])
       override def serialize(inputObject: Expression) = forSeq.serialize(inputObject)
 
-  inline given deriveSet[T: Serializer : ClassTag]: Serializer[Set[T]] =
+  given deriveSet[T: Serializer : ClassTag]: Serializer[Set[T]] =
     val forSeq = deriveSeq[List, T]
     new Serializer[Set[T]]:
-      override def inputType: DataType = forSeq.inputType
+      override def inputType: DataType = ObjectType(classOf[Set[T]])
       override def serialize(inputObject: Expression) =
         val newInput = Invoke(inputObject, "toSeq", ObjectType(classOf[Seq[_]]))
         forSeq.serialize(newInput)
@@ -86,7 +94,7 @@ object Serializer:
   inline given deriveMap[K, V](using ks: Serializer[K], vs: Serializer[V]): Serializer[Map[K, V]] =
     // TODO: nullables
     new Serializer[Map[K, V]]:
-      override def inputType: DataType = MapType(ks.inputType, vs.inputType, true)
+      override def inputType: DataType = ObjectType(classOf[Map[K, V]])
 
       override def serialize(inputObject: Expression) =
         createSerializerForMap(

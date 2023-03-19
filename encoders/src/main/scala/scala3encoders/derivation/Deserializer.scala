@@ -58,13 +58,20 @@ object Deserializer:
     def deserialize(path: Expression): Expression =
       createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Long])
 
-  inline given deriveOpt[T](using d: Deserializer[T]): Deserializer[Option[T]] =
+  given instantDeserializer: Deserializer[java.time.Instant] with
+    def inputType: DataType = TimestampType
+    def deserialize(path: Expression): Expression =
+      createDeserializerForInstant(path)
+      
+  inline given deriveOpt[T](using d: Deserializer[T], ct: ClassTag[T]): Deserializer[Option[T]] =
     new Deserializer[Option[T]]:
-      override def inputType: DataType = d.inputType
+      override def inputType: DataType = 
+        ObjectType(ct.runtimeClass)
+        
       override def deserialize(path: Expression): Expression =
-        WrapOption(d.deserialize(path), d.inputType)
+        WrapOption(d.deserialize(path), inputType)
 
-  inline given deriveArray[T](using d: Deserializer[T], ct: ClassTag[T]): Deserializer[Array[T]] =
+  given deriveArray[T](using d: Deserializer[T], ct: ClassTag[T]): Deserializer[Array[T]] =
     // TODO: nullable. walked
     new Deserializer[Array[T]]:
       override def inputType: DataType = ArrayType(d.inputType)
@@ -77,10 +84,9 @@ object Deserializer:
             WalkedTypePath(Nil),
             (casted, _) => d.deserialize(casted)
           )
-        val arrayData = UnresolvedMapObjects(mapFunction, path)
-        // TODO: replace with scala 3 reflection?
         val arrayClass = ObjectType(ct.newArray(0).getClass)
-          
+        val arrayData = UnresolvedMapObjects(mapFunction, path)
+
         val methodName = d.inputType match
         // TODO: replace with scala 3 reflection?
           case IntegerType => "toIntArray"
@@ -108,14 +114,15 @@ object Deserializer:
             WalkedTypePath(Nil),
             (casted, _) => d.deserialize(casted)
           )
-        val cls = ct.runtimeClass
-        UnresolvedMapObjects(mapFunction, path, Some(cls))
+        UnresolvedMapObjects(mapFunction, path, Some(classOf[Seq[T]]))
 
   inline given derivedSet[T: Deserializer : ClassTag]: Deserializer[Set[T]] =
     val forSeq = deriveSeq[List, T]
     new Deserializer[Set[T]]:
       override def inputType: DataType = forSeq.inputType
-      override def deserialize(path: Expression): Expression = forSeq.deserialize(path)
+      override def deserialize(path: Expression): Expression = 
+        val res = forSeq.deserialize(path).asInstanceOf[UnresolvedMapObjects]
+        UnresolvedMapObjects(res.function, res.child, Some(classOf[Set[T]]))        
 
   inline given derivedMap[K, V](using kd: Deserializer[K], vd: Deserializer[V], ct: ClassTag[Map[K, V]]): Deserializer[Map[K, V]] =
     new Deserializer[Map[K, V]]:
@@ -144,11 +151,7 @@ object Deserializer:
             deserializer.deserialize(newPath)
           }
         val outputType = ObjectType(classTag.runtimeClass)
-        If(
-          IsNull(path),
-          Literal.create(null, outputType),
-          NewInstance(outputType.cls, arguments, outputType, true)
-        )
+        NewInstance(outputType.cls, arguments, outputType, false)
 
   private inline def summonTuple[T <: Tuple]: List[Deserializer[?]] = inline compiletime.erasedValue[T] match
     case _: EmptyTuple => Nil
