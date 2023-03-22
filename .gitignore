@@ -3,5 +3,6 @@
 .metals
 .vscode
 **/target
+*.orig
 **/metals.sbt
 project/.bloop

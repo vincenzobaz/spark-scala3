@@ -54,7 +54,7 @@ lazy val examples = project
   .dependsOn(encoders)
   .settings(
     publish / skip := true,
-    (inputDirectory).withRank(
+    inputDirectory.withRank(
       KeyRanks.Invisible
     ) := baseDirectory.value / "input",
     buildInfoKeys := Seq[BuildInfoKey](inputDirectory),

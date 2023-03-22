@@ -8,7 +8,7 @@ Apache Spark.
 Add the following dependency to your `build.sbt`:
 
 ```
-"io.github.vincenzobaz" %% "spark-scala3" % "0.1.2"
+"io.github.vincenzobaz" %% "spark-scala3" % "0.1.5"
 ```
 
 ## Apache Spark version
