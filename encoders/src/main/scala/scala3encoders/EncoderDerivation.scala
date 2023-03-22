@@ -9,10 +9,14 @@ import org.apache.spark.sql.catalyst.expressions.BoundReference
 import org.apache.spark.sql.catalyst.analysis.GetColumnByOrdinal
 
 // TODO: Nullable field
-given encoder[T](using serializer: Serializer[T], deserializer: Deserializer[T], classTag: ClassTag[T]): Encoder[T] =    
+given encoder[T](using
+    serializer: Serializer[T],
+    deserializer: Deserializer[T],
+    classTag: ClassTag[T]
+): Encoder[T] =
   val inputObject = BoundReference(0, serializer.inputType, true)
   val path = GetColumnByOrdinal(0, deserializer.inputType)
-  
+
   ExpressionEncoder(
     serializer.serialize(inputObject),
     deserializer.deserialize(path),

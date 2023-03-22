@@ -24,7 +24,7 @@ class DerivationTests extends munit.FunSuite:
       encoderBase.schema,
       StructType(
         Seq(
-          StructField("value", ArrayType(IntegerType, true), true)
+          StructField("value", ArrayType(IntegerType, false), true)
         )
       )
     )
@@ -46,7 +46,7 @@ class DerivationTests extends munit.FunSuite:
       encoderBase.schema,
       StructType(
         Seq(
-          StructField("value", ArrayType(IntegerType, true), true)
+          StructField("value", ArrayType(IntegerType, false), true)
         )
       )
     )
@@ -68,7 +68,7 @@ class DerivationTests extends munit.FunSuite:
       encoderBase.schema,
       StructType(
         Seq(
-          StructField("value", ArrayType(IntegerType, true), true)
+          StructField("value", ArrayType(IntegerType, false), true)
         )
       )
     )
