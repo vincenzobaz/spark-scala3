@@ -59,7 +59,8 @@ lazy val examples = project
     ) := baseDirectory.value / "input",
     buildInfoKeys := Seq[BuildInfoKey](inputDirectory),
     libraryDependencies ++= Seq(sparkSql),
-    run / fork := true
+    run / fork := true,
+    javaOptions ++= unnamedJavaOptions
   )
   .settings(publishSettings)
 
