@@ -60,7 +60,7 @@ lazy val examples = project
     buildInfoKeys := Seq[BuildInfoKey](inputDirectory),
     libraryDependencies ++= Seq(sparkSql),
     run / fork := true,
-    javaOptions ++= unnamedJavaOptions
+    run / javaOptions ++= unnamedJavaOptions
   )
   .settings(publishSettings)
 

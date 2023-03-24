@@ -163,7 +163,6 @@ object Deserializer:
         val arrayData = UnresolvedMapObjects(mapFunction, path)
 
         val methodName = d.inputType match
-          // TODO: replace with scala 3 reflection?
           case IntegerType => "toIntArray"
           case LongType    => "toLongArray"
           case DoubleType  => "toDoubleArray"
@@ -243,6 +242,7 @@ object Deserializer:
   private inline def summonAll[T <: Tuple, U <: Tuple]
       : List[(String, Deserializer[?])] =
     inline (erasedValue[T], erasedValue[U]) match
+      // same bulk processing as in Serializer to prevent stackoverflow on summoning decoders for large case classes
       case _: (
               t1 *: t2 *: t3 *: t4 *: t5 *: t6 *: t7 *: t8 *: t9 *: t10 *:
                 t11 *: t12 *: t13 *: t14 *: t15 *: t16 *: ts,

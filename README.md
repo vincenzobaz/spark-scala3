@@ -46,7 +46,3 @@ you can enable with the following import:
 ```scala
 import scala3encoders.given
 ```
-
-
-
-
