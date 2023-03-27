@@ -17,14 +17,12 @@ import scala3encoders.given
     val textFile = sc.textFile(inputDirectory.getPath + "/lorem-ipsum.txt")
     val words: Dataset[String] = textFile.flatMap(line => line.split(" ")).toDS
 
-    val counts: Dataset[(String, Double)] = 
+    val counts: Dataset[(String, Double)] =
       words
         .map(word => (word, 1d))
         .groupByKey((word, _) => word)
         .reduceGroups((a, b) => (a._1, a._2 + b._2))
         .map(_._2)
 
-    counts.show 
-  finally
-    spark.close()
-
+    counts.show
+  finally spark.close()

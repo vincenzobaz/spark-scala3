@@ -18,7 +18,7 @@ As of version 3.2, Spark is published for Scala 2.13, which makes it possible to
 You can add it in your `build.sbt` with:
 
 ```scala
-val sparkVersion = "3.3.1"
+val sparkVersion = "3.3.2"
 
 libraryDependencies ++= Seq(
   ("org.apache.spark" %% "spark-core" % sparkVersion).cross(CrossVersion.for3Use2_13),
