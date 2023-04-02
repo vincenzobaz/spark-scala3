@@ -48,10 +48,21 @@ lazy val encoders = project
   )
   .settings(publishSettings)
 
+ lazy val udf = project
+  .in(file("udf"))
+  .settings(
+    libraryDependencies ++= Seq(sparkSql, munit % Test),
+    Test / parallelExecution := false,
+    Test / fork := true,
+    Test / javaOptions ++= unnamedJavaOptions
+  )
+  .settings(publishSettings)
+  .dependsOn(encoders)
+
 lazy val examples = project
   .in(file("examples"))
   .enablePlugins(BuildInfoPlugin)
-  .dependsOn(encoders)
+  .dependsOn(encoders, udf)
   .settings(
     publish / skip := true,
     inputDirectory.withRank(
