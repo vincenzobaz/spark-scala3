@@ -188,7 +188,6 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
       .as[(Int, Long)]
       .collect()
       .toSet
-    println(res)
     val cmp = Set[(Int, Long)]((1, 3L), (4, 6L))
     assertEquals(res, cmp)
   }
@@ -235,7 +234,11 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
     "derive encoder of case class F"
   ) {
     val encoder = summon[Encoder[F]]
-    val input = Seq(F(Some("whoo"), None, (1,2,3)), F(None, Some(1L), (-1,0,1)), F(null, null, (0,0,0)))
+    val input = Seq(
+      F(Some("whoo"), None, (1, 2, 3)),
+      F(None, Some(1L), (-1, 0, 1)),
+      F(null, null, (0, 0, 0))
+    )
     val res = input.toDS.collect.toSeq
     assertEquals(res(0), input(0))
     assertEquals(res(1), input(1))

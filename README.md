@@ -8,7 +8,7 @@ Apache Spark.
 Add the following dependency to your `build.sbt`:
 
 ```
-"io.github.vincenzobaz" %% "spark-scala3" % "0.1.5"
+"io.github.vincenzobaz" %% "spark-scala3" % "0.2.0"
 ```
 
 ## Apache Spark version
@@ -46,3 +46,28 @@ you can enable with the following import:
 ```scala
 import scala3encoders.given
 ```
+
+## Udf
+
+`Udf` or "user defined functions" enable spark to use own functions that process rows.
+The main routine for creating and registering those functions are 
+`spark.sql.functions.udf` and `SparkSession.register`. These cannot be replaced as simply as the encoders.
+The `udf` call itself is a generic function using `TypeTags` which are not available in Scala 3. The `register` is needed to make the calls available inside a `spark.sql` statement with a string identifier.
+
+To use spark-scala3 `Udf`:
+```scala
+import scala3udf.Udf
+```
+
+Instead of Scala 2’s `udf(lambda)`, you can use the call `Udf(lambda)`. Instead of calling `spark.register(myFun1)`, you can call either:
+
+- `myFun1.register_with(spark, "myFun1")`
+- `Udf.register_with(spark, myFun1, myFun2, ...)` - this will automatically name the used parameter value names
+Instead of an explicit spark session an implicit value could also be used, e.g. using `given spark: SparkSession = SparkSession.builder()...getOrCreate`. Then the equivalent calls are:
+
+- `myFun1.register("myFun1")`
+- `Udf.register(myFun1, myFun2, ...)`
+
+It is important to note that when using the `register` functionality it is necessary for the lambda object that is wrapped by the `Udf` class to have been created on package level - this seems to be necessary when working with spark and Scala 3. Otherwise spark will simply fail to serialize/deserialize that lambda and it will just hang without showing any error output.
+
+The recommendation is _not_ to use `register` with `spark.sql` statements and instead use the typed Spark SQL functions such as `select`, `map`, etc.

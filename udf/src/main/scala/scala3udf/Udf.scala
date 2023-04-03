@@ -4,30 +4,47 @@ import scala.reflect.ClassTag
 
 import org.apache.spark.sql.{Column, SparkSession}
 import org.apache.spark.sql.expressions.UserDefinedFunction
-import org.apache.spark.sql.functions.udf
 import org.apache.spark.sql.types.DataType
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 
 import scala.compiletime.{summonInline, erasedValue}
 import scala.deriving.Mirror
-import scala.quoted._
+import scala.quoted.*
 
 import scala3encoders.derivation.Deserializer
 
-final case class Udf private(udf: UserDefinedFunction, f: AnyRef):
+/// For scala3: instead of calling spark.udf(...) call Udf(...)
+/// Udf wraps the `UserDefinedFunction`. In order to register that
+/// function with the spark function registry (needed in `spark.sql` statements written as strings)
+/// call the `register` function.
+///
+/// @note the register function is only successful when the underlying callback
+/// has been defined and created on package level. Otherwise the serialization/deserialization
+/// in spark will fail (with Scala3). This is checked inside register and will throw.
+/// It is recommended _not_ to use `spark.sql` statements and use the idiomatic `select`, `filter`, `map` etc
+/// spark interfaces.
+final case class Udf private (udf: UserDefinedFunction, f: AnyRef):
   @scala.annotation.varargs
   def apply(exprs: Column*): Column = udf.apply(exprs: _*)
 
-  def register(name: String = "")(using spark: SparkSession): UserDefinedFunction =
+  def register(name: String = "")(using
+      spark: SparkSession
+  ): UserDefinedFunction =
     register_with(spark, name)
 
   def register_with(spark: SparkSession, name: String): UserDefinedFunction =
     Udf.internal_register(spark, name, f, udf)
 
 object Udf:
+  /// helper macro to simplify registering a lambda function variable using its name
+  /// instead of writing
+  /// `my_fun.register("my_fun"); my_other_fun.register("my_other_fun"); `
+  /// you can also write
+  /// `Udf.register(my_fun, my_other_fun, etc...)`
   inline def register(inline udfs: Udf*)(using spark: SparkSession) =
     ${ register_udf_impl('udfs, 'spark) }
 
+  /// same as `register` but with explicit `SparkSession` parameter
   inline def register_with(spark: SparkSession, inline udfs: Udf*) =
     ${ register_udf_impl('udfs, 'spark) }
 
@@ -57,6 +74,10 @@ object Udf:
       )
     }
 
+  /// wrapper for `UdfHelper.createUdf` written in Java to create
+  /// the otherwise private `SparkUserDefinedFunction`.
+  /// This is also used to get all the needed encoders and decoders generated
+  /// by `scala3encoders` package.
   private def create_udf(
       f: AnyRef,
       dataType: DataType,
@@ -109,6 +130,8 @@ object Udf:
       classTag: ClassTag[T]
   ): Seq[Option[ExpressionEncoder[_]]] =
     internal_summon_seq[mirror.MirroredElemTypes]
+
+  // the apply part has been auto generated in `Gen.scala`
 
   def apply[R](
       f: Function0[R]

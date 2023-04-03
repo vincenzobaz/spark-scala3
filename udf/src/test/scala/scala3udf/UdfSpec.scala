@@ -1,12 +1,10 @@
 package scala3udf
 
-import scala3udf.*
 import scala3encoders.given
 
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 
-import scala3udf.Udf
 case class DataWithPos(name: String, x: Int, y: Int, z: Int)
 case class DataWithX(name: String, x: Int)
 case class ContainsData(datax: DataWithX)
@@ -25,44 +23,53 @@ class UdfSpec extends munit.FunSuite:
   override def afterAll(): Unit =
     spark.stop()
 
-
   test("select udf returning a tuple") {
-    val input = Seq(DataWithPos("zero", 0, 0, 0), DataWithPos("something", 1, 2, 3))
+    val input =
+      Seq(DataWithPos("zero", 0, 0, 0), DataWithPos("something", 1, 2, 3))
     val df = input.toDF()
     df.createOrReplaceTempView("data")
 
     // the resulting column is named mirror and contains a tuple with 3 elements
-    val res = spark.sql("SELECT mirror(x,y,z) as mirror FROM data").as[MirrorPos].collect().toList
+    val res = spark
+      .sql("SELECT mirror(x,y,z) as mirror FROM data")
+      .as[MirrorPos]
+      .collect()
+      .toList
 
-    val cmp = input.map {
-      case DataWithPos(name, x, y, z) => MirrorPos(-x, -y, z)
+    val cmp = input.map { case DataWithPos(name, x, y, z) =>
+      MirrorPos(-x, -y, z)
     }
     assertEquals(cmp, res)
   }
 
   test("select udf returning a case class") {
-    val input = Seq(DataWithPos("zero", 0, 0, 0), DataWithPos("something", 1, 2, 3))
+    val input =
+      Seq(DataWithPos("zero", 0, 0, 0), DataWithPos("something", 1, 2, 3))
     val df = input.toDF()
     df.createOrReplaceTempView("data")
 
     // the resulting column is named mirror and contains a tuple with 3 elements
-    val res = spark.sql("SELECT datax(name, x) as datax FROM data").as[ContainsData].collect().toList
+    val res = spark
+      .sql("SELECT datax(name, x) as datax FROM data")
+      .as[ContainsData]
+      .collect()
+      .toList
 
-    val cmp = input.map {
-      case DataWithPos(name, x, y, z) => ContainsData(DataWithX(name, 2 * x))
+    val cmp = input.map { case DataWithPos(name, x, y, z) =>
+      ContainsData(DataWithX(name, 2 * x))
     }
     assertEquals(cmp, res)
   }
 
   test("select random") {
-    val df = Seq(0,0,0,0,0).toDF()
+    val df = Seq(0, 0, 0, 0, 0).toDF()
     df.createOrReplaceTempView("data")
     val res = spark.sql("SELECT random() from data").as[Double].collect().toList
     assert(res.size == res.distinct.size)
   }
 
   test("local udf without register") {
-    val df = Seq(1,2,3,4,5).toDF("x")
+    val df = Seq(1, 2, 3, 4, 5).toDF("x")
     df.createOrReplaceTempView("data")
     val fun = Udf((i: Int) => 2 * i + 1)
     val res = df.select(fun($"x")).as[Int].collect().toList
@@ -70,7 +77,9 @@ class UdfSpec extends munit.FunSuite:
   }
 
   test("local udf with register throws") {
-    interceptMessage[IllegalArgumentException]("provided function has to be moved to package level!") {
+    interceptMessage[IllegalArgumentException](
+      "provided function has to be moved to package level!"
+    ) {
       Udf((i: Int) => 0).register("local")
     }
   }

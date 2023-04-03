@@ -231,7 +231,9 @@ object Deserializer:
   ): Deserializer[T] =
     val elems = summonAll[mirror.MirroredElemLabels, mirror.MirroredElemTypes]
     lazy val fields = elems
-      .map((label, deserializer) => StructField(label, deserializer.inputType, deserializer.nullable))
+      .map((label, deserializer) =>
+        StructField(label, deserializer.inputType, deserializer.nullable)
+      )
     def cls = classTag.runtimeClass
     def isTuple = cls.getName.startsWith("scala.Tuple")
 
