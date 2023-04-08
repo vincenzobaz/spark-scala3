@@ -60,7 +60,7 @@ To use spark-scala3 `udf`:
 import scala3udf.{Udf => udf} // "old" udf doesn't interfer with new scala3udf.udf when renamed
 ``` 
 
-With the renaming you in place, you can use the call `udf(lambda)` as before without interfering with the `udf` function in `org.apache.spark.sql.functions`. Instead of calling `spark.register(myFun1)`, you can call either:
+With the renaming in place, you can use the call `udf(lambda)` as before without interfering with the `udf` function in `org.apache.spark.sql.functions`. Instead of calling `spark.register(myFun1)`, you can call either:
 
 - `myFun1.registerWith(spark, "myFun1")`
 - `udf.registerWith(spark, myFun1, myFun2, ...)` - this will automatically name the used parameter value names
