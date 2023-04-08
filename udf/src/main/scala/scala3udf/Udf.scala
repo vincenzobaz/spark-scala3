@@ -3,7 +3,7 @@ package scala3udf
 import scala.reflect.ClassTag
 
 import org.apache.spark.sql.{Column, SparkSession}
-import org.apache.spark.sql.expressions.UserDefinedFunction
+import org.apache.spark.sql.expressions.{Exporter, UserDefinedFunction}
 import org.apache.spark.sql.types.DataType
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 
@@ -15,14 +15,14 @@ import scala3encoders.derivation.Deserializer
 
 /// For scala3: instead of calling spark.udf(...) call Udf(...)
 /// Udf wraps the `UserDefinedFunction`. In order to register that
-/// function with the spark function registry (needed in `spark.sql` statements written as strings)
+/// function with the Spark function registry (needed in `spark.sql` statements written as strings)
 /// call the `register` function.
 ///
 /// @note the register function is only successful when the underlying callback
 /// has been defined and created on package level. Otherwise the serialization/deserialization
-/// in spark will fail (with Scala3). This is checked inside register and will throw.
+/// in Spark will fail (with Scala3). This is checked inside register and will throw.
 /// It is recommended _not_ to use `spark.sql` statements and use the idiomatic `select`, `filter`, `map` etc
-/// spark interfaces.
+/// Spark interfaces.
 final case class Udf private (udf: UserDefinedFunction, f: AnyRef):
   @scala.annotation.varargs
   def apply(exprs: Column*): Column = udf.apply(exprs: _*)
@@ -30,28 +30,28 @@ final case class Udf private (udf: UserDefinedFunction, f: AnyRef):
   def register(name: String = "")(using
       spark: SparkSession
   ): UserDefinedFunction =
-    register_with(spark, name)
+    registerWith(spark, name)
 
-  def register_with(spark: SparkSession, name: String): UserDefinedFunction =
-    Udf.internal_register(spark, name, f, udf)
+  def registerWith(spark: SparkSession, name: String): UserDefinedFunction =
+    Udf.internalRegister(spark, name, f, udf)
 
 object Udf:
   /// helper macro to simplify registering a lambda function variable using its name
   /// instead of writing
-  /// `my_fun.register("my_fun"); my_other_fun.register("my_other_fun"); `
+  /// `myFun.register("myFun"); myOtherFun.register("myOtherFun"); `
   /// you can also write
-  /// `Udf.register(my_fun, my_other_fun, etc...)`
+  /// `Udf.register(myFun, myOtherFun, etc...)`
   inline def register(inline udfs: Udf*)(using spark: SparkSession) =
-    ${ register_udf_impl('udfs, 'spark) }
+    ${ registerUdfImpl('udfs, 'spark) }
 
   /// same as `register` but with explicit `SparkSession` parameter
-  inline def register_with(spark: SparkSession, inline udfs: Udf*) =
-    ${ register_udf_impl('udfs, 'spark) }
+  inline def registerWith(spark: SparkSession, inline udfs: Udf*) =
+    ${ registerUdfImpl('udfs, 'spark) }
 
-  private inline def var_name(object_name: String): String =
-    object_name.substring(object_name.lastIndexOf(".") + 1)
+  private inline def varName(objectName: String): String =
+    objectName.substring(objectName.lastIndexOf(".") + 1)
 
-  private def register_udf_impl(
+  private def registerUdfImpl(
       udfs: Expr[Seq[Udf]],
       spark: Expr[SparkSession]
   )(using Quotes): Expr[Unit] =
@@ -59,7 +59,7 @@ object Udf:
     val names = udfs match
       case Varargs(udfExprs) => // udfExprs: Seq[Expr[Udf]]
         udfExprs.map { udf =>
-          var_name(udf.show)
+          varName(udf.show)
         }
       case _ =>
         report.errorAndAbort(
@@ -70,15 +70,14 @@ object Udf:
 
     '{
       ${ udfs }.zipWithIndex.map((udf, idx) =>
-        udf.register_with(${ spark }, ${ Expr(names) }(idx))
+        udf.registerWith(${ spark }, ${ Expr(names) }(idx))
       )
     }
 
-  /// wrapper for `UdfHelper.createUdf` written in Java to create
-  /// the otherwise private `SparkUserDefinedFunction`.
-  /// This is also used to get all the needed encoders and decoders generated
+  /// wrapper for `UdfHelper.createUdf` create the otherwise package private `SparkUserDefinedFunction`.
+  /// This is also used to get all the needed encoders and decoders that are generated
   /// by `scala3encoders` package.
-  private def create_udf(
+  private def createUdf(
       f: AnyRef,
       dataType: DataType,
       inputEncoders: Seq[Option[ExpressionEncoder[_]]] = Nil,
@@ -87,26 +86,27 @@ object Udf:
       nullable: Boolean = true,
       deterministic: Boolean = true
   ): Udf =
-    val udf = UdfHelper
-      .createUdf(
-        f,
-        dataType,
-        inputEncoders,
-        outputEncoder,
-        name,
-        nullable,
-        deterministic
-      )
-      .asInstanceOf[UserDefinedFunction]
-    Udf(udf, f)
+    Udf(
+      Exporter
+        .createUdf(
+          f,
+          dataType,
+          inputEncoders,
+          outputEncoder,
+          name,
+          nullable,
+          deterministic
+        ),
+      f
+    )
 
-  private def internal_register(
+  private def internalRegister(
       spark: SparkSession,
-      register_name: String,
+      registerName: String,
       f: Any,
       udf: UserDefinedFunction
   ): UserDefinedFunction =
-    if (register_name.isEmpty()) then
+    if (registerName.isEmpty()) then
       throw IllegalArgumentException(
         "must provide a name when providing a session"
       )
@@ -116,20 +116,13 @@ object Udf:
         "provided function has to be moved to package level!"
       )
 
-    spark.udf.register(register_name, udf)
+    spark.udf.register(registerName, udf)
 
-  private inline def internal_summon_seq[T <: Tuple]
-      : List[Option[ExpressionEncoder[_]]] =
+  private inline def summonSeq[T <: Tuple]: List[Option[ExpressionEncoder[_]]] =
     inline erasedValue[T] match
       case _: (t *: ts) =>
-        Some(summonInline[ExpressionEncoder[t]]) :: internal_summon_seq[ts]
+        Some(summonInline[ExpressionEncoder[t]]) :: summonSeq[ts]
       case _ => Nil
-
-  private inline def summon_seq[T <: Tuple](using
-      mirror: Mirror.ProductOf[T],
-      classTag: ClassTag[T]
-  ): Seq[Option[ExpressionEncoder[_]]] =
-    internal_summon_seq[mirror.MirroredElemTypes]
 
   // the apply part has been auto generated in `Gen.scala`
 
@@ -139,7 +132,7 @@ object Udf:
       er: ExpressionEncoder[R],
       dr: Deserializer[R]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
       Seq(),
@@ -154,7 +147,7 @@ object Udf:
       dr: Deserializer[R],
       et1: ExpressionEncoder[T1]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
       Seq(Some(summon[ExpressionEncoder[T1]])),
@@ -170,10 +163,10 @@ object Udf:
       et1: ExpressionEncoder[T1],
       et2: ExpressionEncoder[T2]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
-      summon_seq[(T1, T2)],
+      summonSeq[(T1, T2)],
       Some(summon[ExpressionEncoder[R]]),
       None
     )
@@ -187,10 +180,10 @@ object Udf:
       et2: ExpressionEncoder[T2],
       et3: ExpressionEncoder[T3]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
-      summon_seq[(T1, T2, T3)],
+      summonSeq[(T1, T2, T3)],
       Some(summon[ExpressionEncoder[R]]),
       None
     )
@@ -205,10 +198,10 @@ object Udf:
       et3: ExpressionEncoder[T3],
       et4: ExpressionEncoder[T4]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
-      summon_seq[(T1, T2, T3, T4)],
+      summonSeq[(T1, T2, T3, T4)],
       Some(summon[ExpressionEncoder[R]]),
       None
     )
@@ -224,10 +217,10 @@ object Udf:
       et4: ExpressionEncoder[T4],
       et5: ExpressionEncoder[T5]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
-      summon_seq[(T1, T2, T3, T4, T5)],
+      summonSeq[(T1, T2, T3, T4, T5)],
       Some(summon[ExpressionEncoder[R]]),
       None
     )
@@ -244,10 +237,10 @@ object Udf:
       et5: ExpressionEncoder[T5],
       et6: ExpressionEncoder[T6]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
-      summon_seq[(T1, T2, T3, T4, T5, T6)],
+      summonSeq[(T1, T2, T3, T4, T5, T6)],
       Some(summon[ExpressionEncoder[R]]),
       None
     )
@@ -265,10 +258,10 @@ object Udf:
       et6: ExpressionEncoder[T6],
       et7: ExpressionEncoder[T7]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
-      summon_seq[(T1, T2, T3, T4, T5, T6, T7)],
+      summonSeq[(T1, T2, T3, T4, T5, T6, T7)],
       Some(summon[ExpressionEncoder[R]]),
       None
     )
@@ -287,10 +280,10 @@ object Udf:
       et7: ExpressionEncoder[T7],
       et8: ExpressionEncoder[T8]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
-      summon_seq[(T1, T2, T3, T4, T5, T6, T7, T8)],
+      summonSeq[(T1, T2, T3, T4, T5, T6, T7, T8)],
       Some(summon[ExpressionEncoder[R]]),
       None
     )
@@ -310,10 +303,10 @@ object Udf:
       et8: ExpressionEncoder[T8],
       et9: ExpressionEncoder[T9]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
-      summon_seq[(T1, T2, T3, T4, T5, T6, T7, T8, T9)],
+      summonSeq[(T1, T2, T3, T4, T5, T6, T7, T8, T9)],
       Some(summon[ExpressionEncoder[R]]),
       None
     )
@@ -334,10 +327,10 @@ object Udf:
       et9: ExpressionEncoder[T9],
       et10: ExpressionEncoder[T10]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
-      summon_seq[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)],
+      summonSeq[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)],
       Some(summon[ExpressionEncoder[R]]),
       None
     )
@@ -359,10 +352,10 @@ object Udf:
       et10: ExpressionEncoder[T10],
       et11: ExpressionEncoder[T11]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
-      summon_seq[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)],
+      summonSeq[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)],
       Some(summon[ExpressionEncoder[R]]),
       None
     )
@@ -385,10 +378,10 @@ object Udf:
       et11: ExpressionEncoder[T11],
       et12: ExpressionEncoder[T12]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
-      summon_seq[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12)],
+      summonSeq[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12)],
       Some(summon[ExpressionEncoder[R]]),
       None
     )
@@ -412,10 +405,10 @@ object Udf:
       et12: ExpressionEncoder[T12],
       et13: ExpressionEncoder[T13]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
-      summon_seq[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13)],
+      summonSeq[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13)],
       Some(summon[ExpressionEncoder[R]]),
       None
     )
@@ -456,10 +449,10 @@ object Udf:
       et13: ExpressionEncoder[T13],
       et14: ExpressionEncoder[T14]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
-      summon_seq[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14)],
+      summonSeq[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14)],
       Some(summon[ExpressionEncoder[R]]),
       None
     )
@@ -519,10 +512,10 @@ object Udf:
       et14: ExpressionEncoder[T14],
       et15: ExpressionEncoder[T15]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
-      summon_seq[
+      summonSeq[
         (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15)
       ],
       Some(summon[ExpressionEncoder[R]]),
@@ -587,10 +580,10 @@ object Udf:
       et15: ExpressionEncoder[T15],
       et16: ExpressionEncoder[T16]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
-      summon_seq[
+      summonSeq[
         (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16)
       ],
       Some(summon[ExpressionEncoder[R]]),
@@ -658,10 +651,10 @@ object Udf:
       et16: ExpressionEncoder[T16],
       et17: ExpressionEncoder[T17]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
-      summon_seq[
+      summonSeq[
         (
             T1,
             T2,
@@ -750,10 +743,10 @@ object Udf:
       et17: ExpressionEncoder[T17],
       et18: ExpressionEncoder[T18]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
-      summon_seq[
+      summonSeq[
         (
             T1,
             T2,
@@ -846,10 +839,10 @@ object Udf:
       et18: ExpressionEncoder[T18],
       et19: ExpressionEncoder[T19]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
-      summon_seq[
+      summonSeq[
         (
             T1,
             T2,
@@ -946,10 +939,10 @@ object Udf:
       et19: ExpressionEncoder[T19],
       et20: ExpressionEncoder[T20]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
-      summon_seq[
+      summonSeq[
         (
             T1,
             T2,
@@ -1050,10 +1043,10 @@ object Udf:
       et20: ExpressionEncoder[T20],
       et21: ExpressionEncoder[T21]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
-      summon_seq[
+      summonSeq[
         (
             T1,
             T2,
@@ -1158,10 +1151,10 @@ object Udf:
       et21: ExpressionEncoder[T21],
       et22: ExpressionEncoder[T22]
   ): Udf =
-    create_udf(
+    createUdf(
       f,
       dr.inputType,
-      summon_seq[
+      summonSeq[
         (
             T1,
             T2,

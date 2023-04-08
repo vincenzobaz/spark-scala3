@@ -21,12 +21,12 @@ object Gen extends App:
           .map(x => s"    et${x}: ExpressionEncoder[T${x}]")
           .mkString(",\n")) ::
         "): Udf =" ::
-        "  create_udf(" ::
+        "  createUdf(" ::
         "    f," ::
         "    dr.inputType," ::
         (if (i == 0) then "    Seq(),"
          else if (i == 1) then "    Seq(Some(summon[ExpressionEncoder[T1]])),"
-         else s"    summon_seq[(${ts.mkString(",")})],") ::
+         else s"    summonSeq[(${ts.mkString(",")})],") ::
         "    Some(summon[ExpressionEncoder[R]])," ::
         "    None" ::
         "  )" :: Nil

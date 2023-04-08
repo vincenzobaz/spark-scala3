@@ -6,3 +6,4 @@
 *.orig
 **/metals.sbt
 project/.bloop
+*.log
