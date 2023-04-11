@@ -23,6 +23,7 @@ import org.apache.spark.sql.catalyst.expressions.GetStructField
 trait Deserializer[T]:
   def inputType: DataType
   def deserialize(path: Expression): Expression
+  def nullable: Boolean = true
 
 object Deserializer:
 
@@ -46,41 +47,49 @@ object Deserializer:
     def inputType: DataType = IntegerType
     def deserialize(path: Expression): Expression =
       createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Integer])
+    override def nullable: Boolean = false
 
   given Deserializer[java.lang.Integer] with
     def inputType: DataType = IntegerType
     def deserialize(path: Expression): Expression =
       createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Integer])
+    override def nullable: Boolean = false
 
   given Deserializer[Long] with
     def inputType: DataType = LongType
     def deserialize(path: Expression): Expression =
       createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Long])
+    override def nullable: Boolean = false
 
   given Deserializer[Double] with
     def inputType: DataType = DoubleType
     def deserialize(path: Expression): Expression =
       createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Double])
+    override def nullable: Boolean = false
 
   given Deserializer[Float] with
     def inputType: DataType = FloatType
     def deserialize(path: Expression): Expression =
       createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Float])
+    override def nullable: Boolean = false
 
   given Deserializer[Short] with
     def inputType: DataType = ShortType
     def deserialize(path: Expression): Expression =
       createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Short])
+    override def nullable: Boolean = false
 
   given Deserializer[Byte] with
     def inputType: DataType = ByteType
     def deserialize(path: Expression): Expression =
       createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Byte])
+    override def nullable: Boolean = false
 
   given Deserializer[Boolean] with
     def inputType: DataType = BooleanType
     def deserialize(path: Expression): Expression =
       createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Boolean])
+    override def nullable: Boolean = false
 
   given Deserializer[java.time.LocalDate] with
     def inputType: DataType = DateType
@@ -222,13 +231,14 @@ object Deserializer:
   ): Deserializer[T] =
     val elems = summonAll[mirror.MirroredElemLabels, mirror.MirroredElemTypes]
     lazy val fields = elems
-      .map((label, deserializer) => StructField(label, deserializer.inputType))
+      .map((label, deserializer) =>
+        StructField(label, deserializer.inputType, deserializer.nullable)
+      )
     def cls = classTag.runtimeClass
     def isTuple = cls.getName.startsWith("scala.Tuple")
 
     new Deserializer[T]:
-      override def inputType: DataType =
-        if (isTuple) ObjectType(cls) else StructType(fields)
+      override def inputType: DataType = StructType(fields)
       override def deserialize(path: Expression): Expression =
         val arguments = elems.zipWithIndex.map {
           case ((label, deserializer), i) =>

@@ -8,7 +8,7 @@ val sparkCore = ("org.apache.spark" %% "spark-core" % sparkVersion).cross(
 val sparkSql = ("org.apache.spark" %% "spark-sql" % sparkVersion).cross(
   CrossVersion.for3Use2_13
 )
-val munit = "org.scalameta" %% "munit" % "0.7.26"
+val munit = "org.scalameta" %% "munit" % "0.7.29"
 
 val inputDirectory = Def.settingKey[File]("")
 
@@ -33,7 +33,7 @@ val unnamedJavaOptions = List(
 
 lazy val root = project
   .in(file("."))
-  .aggregate(encoders, examples)
+  .aggregate(encoders, udf, examples)
   .settings(publish / skip := true)
   .settings(publishSettings)
 
@@ -41,17 +41,26 @@ lazy val encoders = project
   .in(file("encoders"))
   .settings(
     libraryDependencies ++= Seq(sparkSql, munit % Test),
-    Test / parallelExecution := false,
     Test / fork := true,
     Test / javaOptions ++= unnamedJavaOptions
     // Test / javaOptions += "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=1044"
   )
   .settings(publishSettings)
 
+lazy val udf = project
+  .in(file("udf"))
+  .settings(
+    libraryDependencies ++= Seq(sparkSql, munit % Test),
+    Test / fork := true,
+    Test / javaOptions ++= unnamedJavaOptions
+  )
+  .settings(publishSettings)
+  .dependsOn(encoders)
+
 lazy val examples = project
   .in(file("examples"))
   .enablePlugins(BuildInfoPlugin)
-  .dependsOn(encoders)
+  .dependsOn(encoders, udf)
   .settings(
     publish / skip := true,
     inputDirectory.withRank(
