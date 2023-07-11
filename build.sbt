@@ -40,6 +40,7 @@ lazy val root = project
 lazy val encoders = project
   .in(file("encoders"))
   .settings(
+    name := "spark-scala3-encoders",
     libraryDependencies ++= Seq(sparkSql, munit % Test),
     Test / fork := true,
     Test / javaOptions ++= unnamedJavaOptions
@@ -50,6 +51,7 @@ lazy val encoders = project
 lazy val udf = project
   .in(file("udf"))
   .settings(
+    name := "spark-scala3-udf",
     libraryDependencies ++= Seq(sparkSql, munit % Test),
     Test / fork := true,
     Test / javaOptions ++= unnamedJavaOptions
