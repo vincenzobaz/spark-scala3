@@ -1,4 +1,4 @@
-ThisBuild / scalaVersion := "3.2.2"
+ThisBuild / scalaVersion := "3.3.0"
 ThisBuild / semanticdbEnabled := true
 
 val sparkVersion = "3.3.2"
