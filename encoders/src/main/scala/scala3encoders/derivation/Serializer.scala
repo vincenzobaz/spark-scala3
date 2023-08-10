@@ -47,6 +47,10 @@ object Serializer:
     def inputType: DataType = DoubleType
     def serialize(inputObject: Expression): Expression = inputObject
 
+  given given_Serializer_JavaDouble: Serializer[java.lang.Double] with
+    def inputType: DataType = DoubleType
+    def serialize(inputObject: Expression): Expression = inputObject
+
   given Serializer[Float] with
     def inputType: DataType = FloatType
     def serialize(inputObject: Expression): Expression = inputObject
