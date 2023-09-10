@@ -73,11 +73,9 @@ lazy val examples = project
     run / fork := true,
     run / javaOptions ++= unnamedJavaOptions
   )
-  .settings(publishSettings)
 
 import xerial.sbt.Sonatype._
 lazy val publishSettings = Def.settings(
-  name := "spark-scala3",
   licenses := Seq(
     "APL2" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt")
   ),
