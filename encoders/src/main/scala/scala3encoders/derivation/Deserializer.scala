@@ -33,8 +33,7 @@ object Deserializer:
       ct: ClassTag[T]
   ): Deserializer[Option[T]] =
     new Deserializer[Option[T]]:
-      override def inputType: DataType =
-        ObjectType(ct.runtimeClass)
+      override def inputType: DataType = d.inputType
 
       override def deserialize(path: Expression): Expression =
         val tpe = ScalaReflection.typeBoxedJavaMapping.getOrElse(
