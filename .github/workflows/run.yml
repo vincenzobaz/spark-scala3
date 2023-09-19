@@ -10,12 +10,13 @@ jobs:
         with:
           java-version: adopt@1.11
       - name: Run tests
-        run: sbt "encoders / test"
+        run: sbt test
       - name: Run WordCount
         timeout-minutes: 5
         run: sbt "examples / runMain rdd.wordcount"
       - name: Run Dataset-based WordCount
         timeout-minutes: 5
         run: sbt "examples / runMain rdd.wordcountSql"
-
-
+      - name: Run StarWars
+        timeout-minutes: 5
+        run: sbt "examples / runMain sql.StarWars"

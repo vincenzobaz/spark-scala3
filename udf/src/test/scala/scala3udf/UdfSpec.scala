@@ -13,16 +13,19 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder
 
 case class DataWithPos(name: String, x: Int, y: Int, z: Int)
 case class DataWithX(name: String, x: Int)
+case class DataWithOptX(name: Option[String], x: Int)
 case class ContainsData(datax: DataWithX)
+case class ContainsDataOpt(dataoptx: DataWithOptX)
 case class MirrorPos(mirror: (Int, Int, Int))
 
 val mirror = udf((x: Int, y: Int, z: Int) => (-x, -y, z))
 val datax = udf((name: String, x: Int) => DataWithX(name, 2 * x))
+val dataoptx = udf((name: String, x: Int) => DataWithOptX(Option(name), 2 * x))
 val random = udf(() => Math.random())
 
 class UdfSpec extends munit.FunSuite:
   given spark: SparkSession = SparkSession.builder().master("local").getOrCreate
-  udf.register(mirror, datax, random)
+  udf.register(mirror, datax, dataoptx, random)
 
   import spark.sqlContext.implicits._
 
@@ -64,6 +67,25 @@ class UdfSpec extends munit.FunSuite:
     val cmp = input.map { case DataWithPos(name, x, y, z) =>
       ContainsData(DataWithX(name, 2 * x))
     }
+    assertEquals(cmp, res)
+  }
+
+  test("select udf returning an option in case class") {
+    val input =
+      Seq(DataWithPos(null, 0, 0, 0), DataWithPos("something", 1, 2, 3))
+    val df = input.toDF()
+    df.createOrReplaceTempView("data")
+    val res = spark
+      .sql("SELECT dataoptx(name, x) as dataoptx from data")
+      .as[ContainsDataOpt]
+      .collect()
+      .toList
+
+    val cmp = input.map { case DataWithPos(name, x, y, z) =>
+      ContainsDataOpt(DataWithOptX(Option(name), 2 * x))
+    }
+    assertEquals(res(0).dataoptx.name, None)
+    assertEquals(res(1).dataoptx.name, Some("something"))
     assertEquals(cmp, res)
   }
 
