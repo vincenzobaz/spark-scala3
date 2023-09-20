@@ -66,6 +66,11 @@ object Deserializer:
       createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Double])
     override def nullable: Boolean = false
 
+  given given_Deserializer_JavaDouble: Deserializer[java.lang.Double] with
+    def inputType: DataType = DoubleType
+    def deserialize(path: Expression): Expression =
+      createDeserializerForTypesSupportValueOf(path, classOf[java.lang.Double])
+
   given Deserializer[Float] with
     def inputType: DataType = FloatType
     def deserialize(path: Expression): Expression =
