@@ -1,11 +1,7 @@
 package sql
 
-import org.apache.spark.sql.SparkSession
-
-import org.apache.spark.sql.{Dataset, DataFrame, SparkSession}
-import org.apache.spark.sql.functions._
-import org.apache.spark.sql._
 import buildinfo.BuildInfo.inputDirectory
+import org.apache.spark.sql.{Dataset, Encoder, SparkSession}
 
 object StarWars extends App:
   val spark = SparkSession.builder().master("local").getOrCreate

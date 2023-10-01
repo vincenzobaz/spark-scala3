@@ -9,7 +9,7 @@ import scala3encoders.given
 @main def wordcountSql =
   val spark = SparkSession.builder().master("local").getOrCreate
 
-  import spark.implicits.{StringToColumn, rddToDatasetHolder}
+  import spark.implicits.rddToDatasetHolder
 
   try
     val sc = spark.sparkContext

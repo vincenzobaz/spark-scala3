@@ -4,21 +4,15 @@ import scala.compiletime.{constValue, summonInline, erasedValue}
 import scala.deriving.Mirror
 import scala.reflect.ClassTag
 
-import org.apache.spark.sql.catalyst.expressions.{
-  Expression,
-  If,
-  IsNull,
-  Literal
-}
-import org.apache.spark.sql.catalyst.expressions.objects.NewInstance
-import org.apache.spark.sql.catalyst.analysis.UnresolvedExtractValue
+import org.apache.spark.sql.catalyst.expressions.{Expression, Literal}
 import org.apache.spark.sql.catalyst.DeserializerBuildHelper.*
+import org.apache.spark.sql.catalyst.WalkedTypePath
+import org.apache.spark.sql.catalyst.analysis.UnresolvedExtractValue
+import org.apache.spark.sql.catalyst.expressions.GetStructField
 import org.apache.spark.sql.catalyst.expressions.objects._
+import org.apache.spark.sql.helper.Helper
 
 import org.apache.spark.sql.types.*
-import org.apache.spark.sql.catalyst.ScalaReflection
-import org.apache.spark.sql.catalyst.WalkedTypePath
-import org.apache.spark.sql.catalyst.expressions.GetStructField
 
 trait Deserializer[T]:
   def inputType: DataType
@@ -36,7 +30,7 @@ object Deserializer:
       override def inputType: DataType = d.inputType
 
       override def deserialize(path: Expression): Expression =
-        val tpe = ScalaReflection.typeBoxedJavaMapping.getOrElse(
+        val tpe = Helper.typeBoxedJavaMapping.getOrElse(
           d.inputType,
           ct.runtimeClass
         )
@@ -125,14 +119,6 @@ object Deserializer:
     def deserialize(path: Expression): Expression =
       createDeserializerForPeriod(path)
 
-  /*given deriveEnum[T](using d: Deserializer[T], ct: ClassTag[T]): Deserializer[java.lang.Enum[T]] with
-    def inputType: DataType = StringType
-    def deserialize(path: Expression): Expression =
-      createDeserializerForTypesSupportValueOf(
-          Invoke(path, "toString", ObjectType(classOf[String]), returnNullable = false),
-          // TODO !!
-          ct.getClass())*/
-
   given Deserializer[String] with
     def inputType: DataType = StringType
     def deserialize(path: Expression): Expression =
@@ -165,12 +151,12 @@ object Deserializer:
       override def inputType: DataType = ArrayType(d.inputType)
       override def deserialize(path: Expression): Expression =
         val mapFunction: Expression => Expression = el =>
-          deserializerForWithNullSafetyAndUpcast(
+          Helper.deserializerForWithNullSafetyAndUpcast(
             el,
             d.inputType,
             true,
             WalkedTypePath(Nil),
-            (casted, _) => d.deserialize(casted)
+            d.deserialize
           )
         val arrayClass = ObjectType(ct.newArray(0).getClass)
         val arrayData = UnresolvedMapObjects(mapFunction, path)
@@ -196,12 +182,12 @@ object Deserializer:
       override def inputType: DataType = ArrayType(d.inputType)
       override def deserialize(path: Expression): Expression =
         val mapFunction: Expression => Expression = element =>
-          deserializerForWithNullSafetyAndUpcast(
+          Helper.deserializerForWithNullSafetyAndUpcast(
             element,
             d.inputType,
             nullable = true,
             WalkedTypePath(Nil),
-            (casted, _) => d.deserialize(casted)
+            d.deserialize
           )
         UnresolvedMapObjects(mapFunction, path, Some(classOf[Seq[T]]))
 

@@ -9,7 +9,6 @@ import scala3udf.{
 import scala3encoders.given
 
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.catalyst.encoders.RowEncoder
 
 case class DataWithPos(name: String, x: Int, y: Int, z: Int)
 case class DataWithX(name: String, x: Int)
