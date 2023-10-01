@@ -3,7 +3,6 @@ package scala3encoders
 import scala3encoders.derivation.{Deserializer, Serializer}
 import scala.reflect.ClassTag
 
-import org.apache.spark.sql.Encoder
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.catalyst.expressions.BoundReference
 import org.apache.spark.sql.catalyst.analysis.GetColumnByOrdinal

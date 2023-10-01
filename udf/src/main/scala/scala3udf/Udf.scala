@@ -1,14 +1,11 @@
 package scala3udf
 
-import scala.reflect.ClassTag
-
 import org.apache.spark.sql.{Column, SparkSession}
 import org.apache.spark.sql.expressions.{Exporter, UserDefinedFunction}
 import org.apache.spark.sql.types.DataType
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 
 import scala.compiletime.{summonInline, erasedValue}
-import scala.deriving.Mirror
 import scala.quoted.*
 
 import scala3encoders.derivation.Deserializer

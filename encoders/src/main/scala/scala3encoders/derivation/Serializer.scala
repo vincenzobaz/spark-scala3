@@ -7,9 +7,9 @@ import scala.reflect.ClassTag
 import org.apache.spark.sql.catalyst.expressions.{Expression, KnownNotNull}
 import org.apache.spark.sql.catalyst.expressions.objects.Invoke
 import org.apache.spark.sql.catalyst.SerializerBuildHelper.*
+import org.apache.spark.sql.helper.Helper
 import org.apache.spark.sql.types.*
 import org.apache.spark.sql.catalyst.expressions.objects.UnwrapOption
-import org.apache.spark.sql.catalyst.ScalaReflection
 
 trait Serializer[T]:
   def inputType: DataType
@@ -102,23 +102,17 @@ object Serializer:
   given Serializer[BigDecimal] with
     def inputType: DataType = ObjectType(classOf[BigDecimal])
     def serialize(inputObject: Expression): Expression =
-      createSerializerForScalaBigDecimal(inputObject)
+      Helper.createSerializerForBigInteger(inputObject)
 
   given Serializer[java.math.BigInteger] with
     def inputType: DataType = ObjectType(classOf[java.math.BigInteger])
     def serialize(inputObject: Expression): Expression =
-      createSerializerForJavaBigInteger(inputObject)
+      Helper.createSerializerForBigInteger(inputObject)
 
   given Serializer[scala.math.BigInt] with
     def inputType: DataType = ObjectType(classOf[scala.math.BigInt])
     def serialize(inputObject: Expression): Expression =
-      createSerializerForScalaBigInt(inputObject)
-
-  // TODO
-  /*given Serializer[Enum[_]] with
-    def inputType: DataType = ObjectType(classOf[Enum[_]])
-    def serialize(inputObject: Expression): Expression =
-        createSerializerForJavaEnum(inputObject)*/
+      Helper.createSerializerForBigInteger(inputObject)
 
   given Serializer[String] with
     def inputType: DataType = ObjectType(classOf[String])
