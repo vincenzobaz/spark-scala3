@@ -13,10 +13,10 @@ jobs:
         run: sbt test
       - name: Run WordCount
         timeout-minutes: 5
-        run: sbt "runMainExample / runMain rdd.wordcount"
+        run: sbt "runMainExample rdd.wordcount"
       - name: Run Dataset-based WordCount
         timeout-minutes: 5
-        run: sbt "runMainExample / runMain rdd.wordcountSql"
+        run: sbt "runMainExample rdd.wordcountSql"
       - name: Run StarWars
         timeout-minutes: 5
-        run: sbt "runMainExample / runMain sql.StarWars"
+        run: sbt "runMainExample sql.StarWars"

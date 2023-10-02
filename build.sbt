@@ -22,7 +22,8 @@ lazy val sparkVersions = List(
 
 def sparkVersionMatrix(
     projectRoot: ProjectMatrix,
-    overrideSkipPublish: Boolean = false
+    overrideSkipPublish: Boolean = false,
+    sparkProvided: Boolean = true
 ): ProjectMatrix = {
   sparkVersions.foldLeft(projectRoot) {
     case (acc, (axis, version, skipPublish)) =>
@@ -32,7 +33,9 @@ def sparkVersionMatrix(
         _.settings(
           moduleName := name.value + axis.idSuffix,
           publish / skip := (overrideSkipPublish || skipPublish),
-          libraryDependencies += sparkSqlDep(version) % Provided
+          libraryDependencies += (if (sparkProvided)
+                                    sparkSqlDep(version) % Provided
+                                  else sparkSqlDep(version))
         )
       )
   }
@@ -90,7 +93,8 @@ lazy val udf = sparkVersionMatrix(projectMatrix in file("udf"))
 lazy val examples =
   sparkVersionMatrix(
     projectMatrix in file("examples"),
-    overrideSkipPublish = true
+    overrideSkipPublish = true,
+    sparkProvided = false
   )
     .enablePlugins(BuildInfoPlugin)
     .dependsOn(encoders, udf)
