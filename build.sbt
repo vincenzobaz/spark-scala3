@@ -102,7 +102,7 @@ lazy val examples =
       publish / skip := true,
       inputDirectory.withRank(
         KeyRanks.Invisible
-      ) := baseDirectory.value / "input",
+      ) := (ThisBuild / baseDirectory).value / "examples" / "input",
       buildInfoKeys := Seq[BuildInfoKey](inputDirectory),
       run / fork := true,
       run / javaOptions ++= unnamedJavaOptions
