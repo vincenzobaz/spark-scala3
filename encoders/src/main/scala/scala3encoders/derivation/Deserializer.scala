@@ -4,11 +4,9 @@ import scala.compiletime.{constValue, summonInline, erasedValue}
 import scala.deriving.Mirror
 import scala.reflect.ClassTag
 
-import org.apache.spark.sql.catalyst.expressions.{Expression, Literal}
+import org.apache.spark.sql.catalyst.expressions.{Expression}
 import org.apache.spark.sql.catalyst.DeserializerBuildHelper.*
 import org.apache.spark.sql.catalyst.WalkedTypePath
-import org.apache.spark.sql.catalyst.analysis.UnresolvedExtractValue
-import org.apache.spark.sql.catalyst.expressions.GetStructField
 import org.apache.spark.sql.catalyst.expressions.objects._
 import org.apache.spark.sql.helper.Helper
 
@@ -226,16 +224,36 @@ object Deserializer:
       )
     def cls = classTag.runtimeClass
     def isTuple = cls.getName.startsWith("scala.Tuple")
+    val walkedTypePath = WalkedTypePath()
 
     new Deserializer[T]:
       override def inputType: DataType = StructType(fields)
       override def deserialize(path: Expression): Expression =
+        // code is partly taken from `DeserializerBuildHelper.createDeserializer`: `case ProductEncoder`
         val arguments = elems.zipWithIndex.map {
           case ((label, deserializer), i) =>
-            val newPath =
-              if (isTuple) then GetStructField(path, i)
-              else UnresolvedExtractValue(path, Literal(label))
-            deserializer.deserialize(newPath)
+            val newTypePath = walkedTypePath.recordField(cls.getName, label)
+            // For tuples, we grab the inner fields by ordinal instead of name.
+            val getter = if (isTuple) {
+              addToPathOrdinal(
+                path,
+                i,
+                deserializer.inputType,
+                newTypePath
+              )
+            } else {
+              addToPath(
+                path,
+                label,
+                deserializer.inputType,
+                newTypePath
+              )
+            }
+            expressionWithNullSafety(
+              deserializer.deserialize(getter),
+              deserializer.nullable,
+              newTypePath
+            )
         }
         NewInstance(cls, arguments, ObjectType(cls), false)
 
