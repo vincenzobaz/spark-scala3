@@ -2,7 +2,10 @@ package scala3encoders
 
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.Encoder
-import org.apache.spark.sql.types._
+import org.apache.spark.sql.catalyst.analysis.UnresolvedAttribute
+import org.apache.spark.sql.catalyst.expressions.{Literal, UpCast}
+import org.apache.spark.sql.catalyst.expressions.objects.{NewInstance, StaticInvoke}
+import org.apache.spark.sql.types.*
 
 class DerivationTests extends munit.FunSuite:
   test("derive encoder of case class C(x: Int, y: Long)") {
@@ -14,6 +17,54 @@ class DerivationTests extends munit.FunSuite:
           StructField("x", IntegerType),
           StructField("y", LongType)
         )
+      )
+    )
+  }
+
+  test("derived encoder of case class C(x: Int, y: Long) should have deserializer") {
+    val encoder = summon[Encoder[C]].asInstanceOf[ExpressionEncoder[C]]
+    assertEquals(
+      encoder.deserializer,
+      NewInstance(
+        cls = classOf[C],
+        arguments = Vector(
+          StaticInvoke(
+            staticObject = classOf[Integer],
+            dataType = ObjectType(classOf[Integer]),
+            functionName = "valueOf",
+            arguments = Vector(
+              UpCast(
+                child = UnresolvedAttribute(nameParts = List("x")),
+                target = IntegerType,
+                walkedTypePath = Nil
+              )
+            ),
+            inputTypes = Nil,
+            propagateNull = true,
+            returnNullable = false,
+            isDeterministic = true
+          ),
+          StaticInvoke(
+            staticObject = classOf[java.lang.Long],
+            dataType = ObjectType(classOf[java.lang.Long]),
+            functionName = "valueOf",
+            arguments = Vector(
+              UpCast(
+                child = UnresolvedAttribute(nameParts = List("y")),
+                target = LongType,
+                walkedTypePath = Nil
+              )
+            ),
+            inputTypes = Nil,
+            propagateNull = true,
+            returnNullable = false,
+            isDeterministic = true
+          )
+        ),
+        inputTypes = Nil,
+        propagateNull = false,
+        dataType = ObjectType(classOf[C]),
+        outerPointer = None
       )
     )
   }
