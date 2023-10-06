@@ -5,18 +5,12 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout spark-scala3
-        uses: actions/checkout@v2
-      - uses: olafurpg/setup-scala@v10
+        uses: actions/checkout@v4
+      - uses: olafurpg/setup-scala@v14
         with:
           java-version: adopt@1.11
       - name: Run tests
         run: sbt test
-      - name: Run WordCount
-        timeout-minutes: 5
-        run: sbt "examples / runMain rdd.wordcount"
-      - name: Run Dataset-based WordCount
-        timeout-minutes: 5
-        run: sbt "examples / runMain rdd.wordcountSql"
-      - name: Run StarWars
-        timeout-minutes: 5
-        run: sbt "examples / runMain sql.StarWars"
+      - name: Run all main classes for all spark versions
+        timeout-minutes: 15
+        run: sbt "runAllMains"
