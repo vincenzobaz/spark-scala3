@@ -11,12 +11,6 @@ jobs:
           java-version: adopt@1.11
       - name: Run tests
         run: sbt test
-      - name: Run WordCount
-        timeout-minutes: 5
-        run: sbt "latestExample / runMain rdd.wordcount"
-      - name: Run Dataset-based WordCount
-        timeout-minutes: 5
-        run: sbt "latestExample / runMain rdd.wordcountSql"
-      - name: Run StarWars
-        timeout-minutes: 5
-        run: sbt "latestExample / runMain sql.StarWars"
+      - name: Run all main classes for all spark versions
+        timeout-minutes: 10
+        run: sbt "runAllMains"

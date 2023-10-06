@@ -14,34 +14,6 @@ val inputDirectory = Def.settingKey[File]("")
 def sparkSqlDep(ver: String) =
   ("org.apache.spark" %% "spark-sql" % ver).cross(CrossVersion.for3Use2_13)
 
-// Spark versions to check. Always most recent first.
-lazy val sparkVersions = List(
-  (SparkVersionAxis("_spark350", "spark350"), "3.5.0", false),
-  (SparkVersionAxis("_spark341", "spark341"), "3.4.1", true),
-  (SparkVersionAxis("_spark333", "spark333"), "3.3.3", true)
-)
-
-def sparkVersionMatrix(
-    projectRoot: ProjectMatrix,
-    overrideSkipPublish: Boolean = false,
-    sparkProvided: Boolean = true
-): ProjectMatrix = {
-  sparkVersions.foldLeft(projectRoot) {
-    case (acc, (axis, version, skipPublish)) =>
-      acc.customRow(
-        scalaVersions = Seq(scalaVer),
-        axisValues = Seq(axis, VirtualAxis.jvm),
-        _.settings(
-          moduleName := name.value + axis.idSuffix,
-          publish / skip := (overrideSkipPublish || skipPublish),
-          libraryDependencies += (if (sparkProvided)
-                                    sparkSqlDep(version) % Provided
-                                  else sparkSqlDep(version))
-        )
-      )
-  }
-}
-
 // See https://github.com/apache/spark/blob/v3.3.2/launcher/src/main/java/org/apache/spark/launcher/JavaModuleOptions.java
 val unnamedJavaOptions = List(
   "-XX:+IgnoreUnrecognizedVMOptions",
@@ -62,29 +34,35 @@ val unnamedJavaOptions = List(
 )
 
 lazy val root = (project in file("."))
-  .aggregate(
-    ((encoders.projectRefs) ++ udf.projectRefs ++ examples.projectRefs): _*
-  )
+  .aggregate(udf)
+  .aggregate(encoders)
+  .aggregate(examples.projectRefs: _*)
   .settings(
     publishSettings,
     publish / skip := true
   )
 
-lazy val encoders = sparkVersionMatrix(projectMatrix in file("encoders"))
+lazy val encoders = (project in file("encoders"))
   .settings(
     name := "spark-scala3-encoders",
-    libraryDependencies += munit % Test,
+    libraryDependencies ++= Seq(
+      sparkSqlDep(sparkVersions.head.sparkVersion),
+      munit % Test
+    ),
     Test / fork := true,
     Test / javaOptions ++= unnamedJavaOptions
     // Test / javaOptions += "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=1044"
   )
   .settings(publishSettings)
 
-lazy val udf = sparkVersionMatrix(projectMatrix in file("udf"))
+lazy val udf = (project in file("udf"))
   .in(file("udf"))
   .settings(
     name := "spark-scala3-udf",
-    libraryDependencies += munit % Test,
+    libraryDependencies ++= Seq(
+      sparkSqlDep(sparkVersions.head.sparkVersion),
+      munit % Test
+    ),
     Test / fork := true,
     Test / javaOptions ++= unnamedJavaOptions
   )
@@ -93,12 +71,9 @@ lazy val udf = sparkVersionMatrix(projectMatrix in file("udf"))
 
 lazy val examples =
   sparkVersionMatrix(
-    projectMatrix in file("examples"),
-    overrideSkipPublish = true,
-    sparkProvided = false
+    projectMatrix in file("examples")
   )
     .enablePlugins(BuildInfoPlugin)
-    .dependsOn(encoders, udf)
     .settings(
       publish / skip := true,
       inputDirectory.withRank(
@@ -111,18 +86,45 @@ lazy val examples =
 
 addCommandAlias(
   "latestExample",
-  s"${examples.finder(sparkVersions.head._1, VirtualAxis.jvm)(scalaVer).id}"
+  s"${examples.finder(sparkVersions.head, VirtualAxis.jvm)(scalaVer).id}"
 )
 
-addCommandAlias(
-  "latestEncoders",
-  s"${encoders.finder(sparkVersions.head._1, VirtualAxis.jvm)(scalaVer).id}"
+// Spark versions to check. Always most recent first.
+lazy val sparkVersions = List(
+  SparkVersionAxis("_spark35_", "spark350", "3.5.0"),
+  SparkVersionAxis("_spark34_", "spark341", "3.4.1"),
+  SparkVersionAxis("_spark33_", "spark333", "3.3.3")
 )
 
-addCommandAlias(
-  "latestUdf",
-  s"${encoders.finder(sparkVersions.head._1, VirtualAxis.jvm)(scalaVer).id}"
-)
+lazy val runAllMains = taskKey[Unit]("Run all mains")
+runAllMains := Def.sequential {
+  examples.allProjects().map(_._1).map { project =>
+    Def.taskDyn {
+      val mainClasses = (project / Compile / discoveredMainClasses).value
+      Def.sequential {
+        mainClasses.map { mainClass =>
+          (project / Compile / runMain).toTask(" " + mainClass)
+        }
+      }
+    }
+  }
+}.value
+
+def sparkVersionMatrix(
+    projectRoot: ProjectMatrix
+): ProjectMatrix = {
+  sparkVersions.foldLeft(projectRoot) { case (acc, axis) =>
+    acc.customRow(
+      scalaVersions = Seq(scalaVer),
+      axisValues = Seq(axis, VirtualAxis.jvm),
+      _.settings(
+        moduleName := name.value + axis.idSuffix,
+        publish / skip := true,
+        libraryDependencies += sparkSqlDep(axis.sparkVersion)
+      ).dependsOn(encoders, udf)
+    )
+  }
+}
 
 import xerial.sbt.Sonatype._
 lazy val publishSettings = Def.settings(
