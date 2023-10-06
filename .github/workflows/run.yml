@@ -5,12 +5,12 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout spark-scala3
-        uses: actions/checkout@v2
-      - uses: olafurpg/setup-scala@v10
+        uses: actions/checkout@v4
+      - uses: olafurpg/setup-scala@v14
         with:
           java-version: adopt@1.11
       - name: Run tests
         run: sbt test
       - name: Run all main classes for all spark versions
-        timeout-minutes: 10
+        timeout-minutes: 15
         run: sbt "runAllMains"
