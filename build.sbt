@@ -17,7 +17,8 @@ def sparkSqlDep(ver: String) =
 // Spark versions to check. Always most recent first.
 lazy val sparkVersions = List(
   (SparkVersionAxis("_spark350", "spark350"), "3.5.0", false),
-  (SparkVersionAxis("_spark332", "spark332"), "3.3.2", true)
+  (SparkVersionAxis("_spark341", "spark341"), "3.4.1", true),
+  (SparkVersionAxis("_spark333", "spark333"), "3.3.3", true)
 )
 
 def sparkVersionMatrix(
@@ -109,8 +110,18 @@ lazy val examples =
     )
 
 addCommandAlias(
-  "runMainExample",
-  s"${examples.finder(sparkVersions.head._1, VirtualAxis.jvm)(scalaVer).id}/runMain"
+  "latestExample",
+  s"${examples.finder(sparkVersions.head._1, VirtualAxis.jvm)(scalaVer).id}"
+)
+
+addCommandAlias(
+  "latestEncoders",
+  s"${encoders.finder(sparkVersions.head._1, VirtualAxis.jvm)(scalaVer).id}"
+)
+
+addCommandAlias(
+  "latestUdf",
+  s"${encoders.finder(sparkVersions.head._1, VirtualAxis.jvm)(scalaVer).id}"
 )
 
 import xerial.sbt.Sonatype._
