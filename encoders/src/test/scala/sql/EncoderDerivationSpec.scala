@@ -364,10 +364,10 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
     // create temporary csv file
     val file = File.createTempFile("test", ".csv")
     val lines = """name;lat;lon
-Berlin;52.520008;13.40
-Madrid;40.416775;-3.70
-New York;40.730610;-73.935242
-"""
+                |Berlin;52.520008;13.40
+                |Madrid;40.416775;-3.70
+                |New York;40.730610;-73.935242
+                |""".stripMargin
     // write lines to file
     val pw = new PrintWriter(file)
     pw.write(lines)
