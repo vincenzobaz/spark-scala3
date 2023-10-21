@@ -1,18 +1,62 @@
 package sql
 
 import buildinfo.BuildInfo.inputDirectory
-import org.apache.spark.sql.{Dataset, Encoder, SparkSession}
+import org.apache.spark.sql.{DataFrame, Dataset, Encoder, SparkSession}
+import org.apache.spark.sql.functions.col
+import scala3encoders.given
+import scala3udf.{
+  // "old" udf doesn't interfer with new scala3udf.udf when renamed
+  Udf => udf
+}
+import scala.reflect.ClassTag
+
+def map_udf[T](df: DataFrame, fn: udf)(implicit
+    ct: ClassTag[T],
+    enc: Encoder[T]
+): Dataset[T] = {
+  val columns = ct.runtimeClass.getDeclaredFields.map(_.getName).toList.map(col)
+  df.select(fn(columns: _*).alias("udf")).select("udf.*").as[T]
+}
+
+case class Character(
+    name: String,
+    height: Double,
+    weight: Option[Double],
+    eyecolor: Option[String],
+    haircolor: Option[String],
+    jedi: Boolean,
+    species: String
+)
+
+def toOption[T](what: String, parse: String => T) =
+  if (what == "NA") None else Some(parse(what))
+
+val character = udf(
+  (
+      name: String,
+      height: Double,
+      weight: String,
+      eyecolor: String,
+      haircolor: String,
+      jedi: String,
+      species: String
+  ) =>
+    Character(
+      name,
+      height,
+      toOption(weight, _.toString.toDouble),
+      toOption(eyecolor, _.toString),
+      toOption(haircolor, _.toString),
+      jedi == "jedi",
+      species
+    )
+)
 
 object StarWars extends App:
   val spark = SparkSession.builder().master("local").getOrCreate
-  import spark.implicits.localSeqToDatasetHolder
-  import scala3encoders.given
+  import spark.implicits._
 
   try
-    extension [T: Encoder](seq: Seq[T])
-      def toDS: Dataset[T] =
-        localSeqToDatasetHolder(seq).toDS
-
     case class Friends(name: String, friends: String)
     val friends: Dataset[Friends] = Seq(
       ("Yoda", "Obi-Wan Kenobi"),
@@ -43,31 +87,21 @@ object StarWars extends App:
 
     dsMissing.show()
 
-    case class Character(
-        name: String,
-        height: Int,
-        weight: Option[Int],
-        eyecolor: Option[String],
-        haircolor: Option[String],
-        jedi: String,
-        species: String
-    )
-
-    val characters: Dataset[Character] = spark.sqlContext.read
+    val df = spark.sqlContext.read
       .option("header", "true")
       .option("delimiter", ",")
       .option("inferSchema", "true")
       .csv(s"${inputDirectory.getPath}/starwars.csv")
-      .as[Character]
 
+    val characters = map_udf[Character](df, character)
     characters.show()
     val sw_df = characters.join(friends, Seq("name"))
     sw_df.show()
 
     case class SW(
         name: String,
-        height: Int,
-        weight: Option[Int],
+        height: Double,
+        weight: Option[Double],
         eyecolor: Option[String],
         haircolor: Option[String],
         jedi: String,
