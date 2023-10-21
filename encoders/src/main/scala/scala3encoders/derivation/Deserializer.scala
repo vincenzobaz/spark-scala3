@@ -4,12 +4,16 @@ import scala.compiletime.{constValue, summonInline, erasedValue}
 import scala.deriving.Mirror
 import scala.reflect.ClassTag
 
-import org.apache.spark.sql.catalyst.expressions.{Expression}
+import org.apache.spark.sql.catalyst.expressions.{
+  Expression,
+  If,
+  IsNull,
+  Literal
+}
 import org.apache.spark.sql.catalyst.DeserializerBuildHelper.*
 import org.apache.spark.sql.catalyst.WalkedTypePath
 import org.apache.spark.sql.catalyst.expressions.objects._
 import org.apache.spark.sql.helper.Helper
-
 import org.apache.spark.sql.types.*
 
 trait Deserializer[T]:
@@ -255,7 +259,10 @@ object Deserializer:
               newTypePath
             )
         }
-        NewInstance(cls, arguments, ObjectType(cls), false)
+
+        val newInstance =
+          NewInstance(cls, arguments, ObjectType(cls), propagateNull = false)
+        If(IsNull(path), Literal.create(null, ObjectType(cls)), newInstance)
 
   private inline def summonAll[T <: Tuple, U <: Tuple]
       : List[(String, Deserializer[?])] =
