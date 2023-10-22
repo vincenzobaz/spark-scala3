@@ -75,12 +75,9 @@ object StarWarsData:
           case "NA" => None
           case s    => Some(s)
         }
-        def getDoubleOpt(s: String): Option[Double] = s match {
-          case "NA" => None
-          case s    => Some(s.toDouble)
-        }
-        // calling Character.apply wouldn't work here!
-        new Character(
+        def getDoubleOpt(s: String): Option[Double] = getOpt(s).map(_.toDouble)
+        
+        Character(
           name,
           height,
           getDoubleOpt(weight),
