@@ -1,9 +1,10 @@
 package scala3encoders
 
-import org.apache.spark.sql.Encoder
+import org.apache.spark.sql.{AnalysisException, Encoder}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
+import java.io.{File, PrintWriter}
 
 case class A()
 case class B(x: String)
@@ -130,6 +131,7 @@ final case class ChkMap(
 case class Sequence(id: Int, nums: Seq[Int])
 
 case class City(name: String, lat: Double, lon: Double)
+case class CityWithInts(name: String, lat: Int, lon: Int)
 case class Journey(id: Int, cities: Seq[City])
 
 val dSchema =
@@ -356,4 +358,43 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
         92, 93, 94, 95, 96, 97, 98, 99)
     )
     assertEquals(input.toDS.collect.toSeq, input)
+  }
+
+  test("check cast is checked") {
+    // create temporary csv file
+    val file = File.createTempFile("test", ".csv")
+    val lines = """name;lat;lon
+                |Berlin;52.520008;13.40
+                |Madrid;40.416775;-3.70
+                |New York;40.730610;-73.935242
+                |""".stripMargin
+    // write lines to file
+    val pw = new PrintWriter(file)
+    pw.write(lines)
+    pw.close()
+
+    val df = spark.sqlContext.read
+      .option("header", "true")
+      .option("delimiter", ";")
+      .option("inferSchema", "true")
+      .csv(file.getAbsolutePath())
+
+    val exception = intercept[AnalysisException] {
+      df.as[CityWithInts]
+    }
+    assert(
+      clue(exception.getMessage).contains(
+        "[CANNOT_UP_CAST_DATATYPE] Cannot up cast lat from \"DOUBLE\" to \"INT\"."
+      )
+    )
+
+    val cities = df.as[City]
+    assertEquals(
+      cities.collect.toList,
+      List(
+        City("Berlin", 52.520008, 13.40),
+        City("Madrid", 40.416775, -3.70),
+        City("New York", 40.730610, -73.935242)
+      )
+    )
   }
