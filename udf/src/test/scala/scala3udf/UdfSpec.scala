@@ -16,15 +16,10 @@ case class DataWithOptX(name: Option[String], x: Int)
 case class ContainsData(datax: DataWithX)
 case class ContainsDataOpt(dataoptx: DataWithOptX)
 case class MirrorPos(mirror: (Int, Int, Int))
-
-val mirror = udf((x: Int, y: Int, z: Int) => (-x, -y, z))
-val datax = udf((name: String, x: Int) => DataWithX(name, 2 * x))
-val dataoptx = udf((name: String, x: Int) => DataWithOptX(Option(name), 2 * x))
-val random = udf(() => Math.random())
+case class PosOuter(pos: (Int, Int, Int))
 
 class UdfSpec extends munit.FunSuite:
   given spark: SparkSession = SparkSession.builder().master("local").getOrCreate
-  udf.register(mirror, datax, dataoptx, random)
 
   import spark.sqlContext.implicits._
 
@@ -32,6 +27,8 @@ class UdfSpec extends munit.FunSuite:
     spark.stop()
 
   test("select udf returning a tuple") {
+    udf((x: Int, y: Int, z: Int) => (-x, -y, z)).register("mirror")
+
     val input =
       Seq(DataWithPos("zero", 0, 0, 0), DataWithPos("something", 1, 2, 3))
     val df = input.toDF()
@@ -51,6 +48,7 @@ class UdfSpec extends munit.FunSuite:
   }
 
   test("select udf returning a case class") {
+    udf((name: String, x: Int) => DataWithX(name, 2 * x)).register("datax")
     val input =
       Seq(DataWithPos("zero", 0, 0, 0), DataWithPos("something", 1, 2, 3))
     val df = input.toDF()
@@ -70,6 +68,8 @@ class UdfSpec extends munit.FunSuite:
   }
 
   test("select udf returning an option in case class") {
+    udf((name: String, x: Int) => DataWithOptX(Option(name), 2 * x))
+      .register("dataoptx")
     val input =
       Seq(DataWithPos(null, 0, 0, 0), DataWithPos("something", 1, 2, 3))
     val df = input.toDF()
@@ -89,6 +89,7 @@ class UdfSpec extends munit.FunSuite:
   }
 
   test("select random") {
+    udf(() => Math.random()).register("random")
     val df = Seq(0, 0, 0, 0, 0).toDF()
     df.createOrReplaceTempView("data")
     val res = spark.sql("SELECT random() from data").as[Double].collect().toList
@@ -103,10 +104,31 @@ class UdfSpec extends munit.FunSuite:
     assert(res == List(3, 5, 13, 49, 241))
   }
 
-  test("local udf with register throws") {
-    interceptMessage[IllegalArgumentException](
-      "provided function has to be moved to package level!"
+  test("using a local class") {
+    val input = List(PosOuter(0, 0, 0), PosOuter(-1, -1, 2))
+    val df =
+      input.map { case PosOuter((x, y, z)) => DataWithPos("", x, y, z) }.toDF()
+
+    // a local class could be used inside a udf
+    case class Pos(pos: (Int, Int, Int))
+    val pos = udf((x: Int, y: Int, z: Int) => Pos((x, y, z)))
+
+    val dfOut = df.select(pos($"x", $"y", $"z").as("p")).select("p.*")
+
+    // but we need a globally accessible class for decoding
+    val res = dfOut.as[PosOuter].collect().toList
+    assert(res == input)
+
+    // error message changed slightly with spark versions
+    val dot = if (spark.version.split("\\.")(1).toInt <= 3) "" else "."
+    // and this one throws since Pos could not be decoded
+    interceptMessage[RuntimeException](
+      """Error while decoding: scala.ScalaReflectionException: <none> is not a term
+        |newInstance(class scala3udftest.UdfSpec$Pos$1)""".stripMargin + dot
     ) {
-      udf((i: Int) => 0).register("local")
+      // spark compiler spills out some error messages - ignore them here
+      spark.sparkContext.setLogLevel("FATAL")
+      dfOut.as[Pos].collect()
+      spark.sparkContext.setLogLevel("INFO")
     }
   }

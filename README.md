@@ -70,6 +70,8 @@ Instead of an explicit Spark session an implicit value could also be used, e.g. 
 - `myFun1.register("myFun1")`
 - `udf.register(myFun1, myFun2, ...)`
 
-It is important to note that when using the `register` functionality it is necessary for the lambda object that is wrapped by the `Udf` class to have been created on package level - this seems to be necessary when working with spark and Scala 3. Otherwise Spark will simply fail to serialize/deserialize that lambda and it will just hang without showing any error output.
+Regarding the use of Spark 3.3.x:
+it is important to note that when using the `register` functionality it is necessary for the lambda object that is wrapped by the `Udf` class to have been created on package level - this seems to be necessary when working with spark and Scala 3. Otherwise Spark will simply fail to serialize/deserialize that lambda and it will just hang without showing any error output.
+Also type checks will not work on Spark 3.3.x.
 
-The recommendation is _not_ to use `register` with `spark.sql` statements and instead use the typed Spark SQL functions such as `select`, `map`, etc.
+The recommendation is to use spark version at least 3.4.1.

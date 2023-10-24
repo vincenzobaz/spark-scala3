@@ -360,41 +360,43 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
     assertEquals(input.toDS.collect.toSeq, input)
   }
 
-  test("check cast is checked") {
-    // create temporary csv file
-    val file = File.createTempFile("test", ".csv")
-    val lines = """name;lat;lon
-                |Berlin;52.520008;13.40
-                |Madrid;40.416775;-3.70
-                |New York;40.730610;-73.935242
-                |""".stripMargin
-    // write lines to file
-    val pw = new PrintWriter(file)
-    pw.write(lines)
-    pw.close()
+  if (spark.version.split("\\.")(1).toInt > 3) then
+    // cast check is only supported for spark version > 3.3.x
+    test("check cast is checked") {
+      // create temporary csv file
+      val file = File.createTempFile("test", ".csv")
+      val lines = """name;lat;lon
+                  |Berlin;52.520008;13.40
+                  |Madrid;40.416775;-3.70
+                  |New York;40.730610;-73.935242
+                  |""".stripMargin
+      // write lines to file
+      val pw = new PrintWriter(file)
+      pw.write(lines)
+      pw.close()
 
-    val df = spark.sqlContext.read
-      .option("header", "true")
-      .option("delimiter", ";")
-      .option("inferSchema", "true")
-      .csv(file.getAbsolutePath())
+      val df = spark.sqlContext.read
+        .option("header", "true")
+        .option("delimiter", ";")
+        .option("inferSchema", "true")
+        .csv(file.getAbsolutePath())
 
-    val exception = intercept[AnalysisException] {
-      df.as[CityWithInts]
+      val exception = intercept[AnalysisException] {
+        df.as[CityWithInts]
+      }
+      assert(
+        clue(exception.getMessage).contains(
+          "[CANNOT_UP_CAST_DATATYPE] Cannot up cast lat from \"DOUBLE\" to \"INT\"."
+        )
+      )
+
+      val cities = df.as[City]
+      assertEquals(
+        cities.collect.toList,
+        List(
+          City("Berlin", 52.520008, 13.40),
+          City("Madrid", 40.416775, -3.70),
+          City("New York", 40.730610, -73.935242)
+        )
+      )
     }
-    assert(
-      clue(exception.getMessage).contains(
-        "[CANNOT_UP_CAST_DATATYPE] Cannot up cast lat from \"DOUBLE\" to \"INT\"."
-      )
-    )
-
-    val cities = df.as[City]
-    assertEquals(
-      cities.collect.toList,
-      List(
-        City("Berlin", 52.520008, 13.40),
-        City("Madrid", 40.416775, -3.70),
-        City("New York", 40.730610, -73.935242)
-      )
-    )
-  }
