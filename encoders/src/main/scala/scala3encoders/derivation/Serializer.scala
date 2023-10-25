@@ -1,15 +1,15 @@
 package scala3encoders.derivation
 
-import scala.compiletime.{constValue, summonInline, erasedValue}
+import scala.compiletime.{constValue, erasedValue, summonInline}
 import scala.deriving.Mirror
 import scala.reflect.{ClassTag, Enum}
-
 import org.apache.spark.sql.catalyst.expressions.{Expression, KnownNotNull}
-import org.apache.spark.sql.catalyst.expressions.objects.Invoke
+import org.apache.spark.sql.catalyst.expressions.objects.{Invoke, StaticInvoke, UnwrapOption}
 import org.apache.spark.sql.catalyst.SerializerBuildHelper.*
 import org.apache.spark.sql.helper.Helper
 import org.apache.spark.sql.types.*
-import org.apache.spark.sql.catalyst.expressions.objects.UnwrapOption
+import scala.concurrent.duration.FiniteDuration
+import scala.jdk.javaapi.DurationConverters
 
 trait Serializer[T]:
   def inputType: DataType
@@ -94,6 +94,18 @@ object Serializer:
     def serialize(inputObject: Expression): Expression =
       createSerializerForJavaDuration(inputObject)
 
+  given Serializer[FiniteDuration] with
+    def inputType: DataType = ObjectType(classOf[FiniteDuration])
+    def serialize(inputObject: Expression): Expression =
+      val javaDuration = StaticInvoke(
+        DurationConverters.getClass,
+        ObjectType(classOf[java.time.Duration]),
+        "toJava",
+        inputObject :: Nil,
+        returnNullable = false
+      )
+      summon[Serializer[java.time.Duration]].serialize(javaDuration)
+
   given Serializer[java.time.Period] with
     def inputType: DataType = ObjectType(classOf[java.time.Period])
     def serialize(inputObject: Expression): Expression =
@@ -118,7 +130,7 @@ object Serializer:
     def inputType: DataType = ObjectType(classOf[String])
     def serialize(inputObject: Expression): Expression =
       createSerializerForString(inputObject)
-  
+
   given [E <: Enum: ClassTag]: Serializer[E] with
     def inputType: DataType = ObjectType(summon[ClassTag[E]].runtimeClass)
     def serialize(inputObject: Expression): Expression =

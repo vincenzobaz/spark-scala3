@@ -1,20 +1,16 @@
 package scala3encoders.derivation
 
-import scala.compiletime.{constValue, summonInline, erasedValue}
+import scala.compiletime.{constValue, erasedValue, summonInline}
 import scala.deriving.Mirror
 import scala.reflect.{ClassTag, Enum}
-
-import org.apache.spark.sql.catalyst.expressions.{
-  Expression,
-  If,
-  IsNull,
-  Literal
-}
+import org.apache.spark.sql.catalyst.expressions.{Expression, If, IsNull, Literal}
 import org.apache.spark.sql.catalyst.DeserializerBuildHelper.*
 import org.apache.spark.sql.catalyst.WalkedTypePath
-import org.apache.spark.sql.catalyst.expressions.objects._
+import org.apache.spark.sql.catalyst.expressions.objects.*
 import org.apache.spark.sql.helper.Helper
 import org.apache.spark.sql.types.*
+import scala.concurrent.duration.FiniteDuration
+import scala.jdk.javaapi.DurationConverters
 
 trait Deserializer[T]:
   def inputType: DataType
@@ -115,6 +111,18 @@ object Deserializer:
     def inputType: DataType = DayTimeIntervalType()
     def deserialize(path: Expression): Expression =
       createDeserializerForDuration(path)
+
+  given Deserializer[FiniteDuration] with
+    def inputType: DataType = DayTimeIntervalType()
+    def deserialize(path: Expression): Expression =
+      val javaDuration = summon[Deserializer[java.time.Duration]].deserialize(path)
+      StaticInvoke(
+        DurationConverters.getClass,
+        ObjectType(classOf[FiniteDuration]),
+        "toScala",
+        javaDuration :: Nil,
+        returnNullable = false
+      )
 
   given Deserializer[java.time.Period] with
     def inputType: DataType = YearMonthIntervalType()
