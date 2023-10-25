@@ -2,7 +2,7 @@ package scala3encoders.derivation
 
 import scala.compiletime.{constValue, summonInline, erasedValue}
 import scala.deriving.Mirror
-import scala.reflect.ClassTag
+import scala.reflect.{ClassTag, Enum}
 
 import org.apache.spark.sql.catalyst.expressions.{Expression, KnownNotNull}
 import org.apache.spark.sql.catalyst.expressions.objects.Invoke
@@ -118,6 +118,17 @@ object Serializer:
     def inputType: DataType = ObjectType(classOf[String])
     def serialize(inputObject: Expression): Expression =
       createSerializerForString(inputObject)
+  
+  given [E <: Enum: ClassTag]: Serializer[E] with
+    def inputType: DataType = ObjectType(summon[ClassTag[E]].runtimeClass)
+    def serialize(inputObject: Expression): Expression =
+      val string = Invoke(
+        inputObject,
+        "toString",
+        ObjectType(classOf[String]),
+        returnNullable = false
+      )
+      summon[Serializer[String]].serialize(string)
 
   given deriveSeq[F[_], T](using s: Serializer[T])(using
       F[T] <:< Seq[T]

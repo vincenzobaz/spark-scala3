@@ -134,6 +134,10 @@ case class City(name: String, lat: Double, lon: Double)
 case class CityWithInts(name: String, lat: Int, lon: Int)
 case class Journey(id: Int, cities: Seq[City])
 
+enum Color:
+  case Red, Black
+case class ColorData(color: Color)
+
 val dSchema =
   StructType(
     Seq(
@@ -273,6 +277,16 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
 
     val input = Seq(A(), A())
     assertEquals(input.toDS.collect.toSeq, input)
+  }
+
+  test("derive encoder of FiniteDuration") {
+    val data = Seq(ColorData(Color.Black), ColorData(Color.Red)).toDS()
+      .map(_.copy(Color.Red))
+    assertEquals(
+      data.schema,
+      StructType(Seq(StructField("color", StringType, true)))
+    )
+    assertEquals(data.collect().toSeq, Seq(ColorData(Color.Red), ColorData(Color.Red)))
   }
 
   test("List[Int]") {
