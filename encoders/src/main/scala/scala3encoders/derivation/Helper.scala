@@ -11,22 +11,19 @@ import org.apache.spark.sql.catalyst.WalkedTypePath
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
 
-// This is copied from spark  to support older versions of Spark and 3.5.0 -
+// This is copied from spark to support older versions of Spark and 3.5.0 -
 // it was part of ScalaReflection and was moved to EncoderUtils in 3.5.0
 object Helper {
   private val nullOnOverflow = !SQLConf.get.ansiEnabled
 
-  val typeBoxedJavaMapping: Map[DataType, Class[_]] = Map[DataType, Class[_]](
-    BooleanType -> classOf[java.lang.Boolean],
-    ByteType -> classOf[java.lang.Byte],
-    ShortType -> classOf[java.lang.Short],
-    IntegerType -> classOf[java.lang.Integer],
-    LongType -> classOf[java.lang.Long],
-    FloatType -> classOf[java.lang.Float],
-    DoubleType -> classOf[java.lang.Double],
-    DateType -> classOf[java.lang.Integer],
-    TimestampType -> classOf[java.lang.Long],
-    TimestampNTZType -> classOf[java.lang.Long]
+  val typeBoxedJavaMapping: Map[Class[?], Class[?]] = Map[Class[?], Class[?]](
+    classOf[Boolean] -> classOf[java.lang.Boolean],
+    classOf[Byte] -> classOf[java.lang.Byte],
+    classOf[Short] -> classOf[java.lang.Short],
+    classOf[Int] -> classOf[java.lang.Integer],
+    classOf[Long] -> classOf[java.lang.Long],
+    classOf[Float] -> classOf[java.lang.Float],
+    classOf[Double] -> classOf[java.lang.Double]
   )
 
   def createSerializerForBigInteger(inputObject: Expression): Expression = {
