@@ -107,12 +107,6 @@ object Udf:
       throw IllegalArgumentException(
         "must provide a name when providing a session"
       )
-
-    if (!f.getClass().getName().contains("$package$")) then
-      throw IllegalArgumentException(
-        "provided function has to be moved to package level!"
-      )
-
     spark.udf.register(registerName, udf)
 
   private inline def summonSeq[T <: Tuple]: List[Option[ExpressionEncoder[_]]] =
