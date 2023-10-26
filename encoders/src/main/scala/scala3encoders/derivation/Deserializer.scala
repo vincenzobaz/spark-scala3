@@ -2,7 +2,7 @@ package scala3encoders.derivation
 
 import scala.compiletime.{constValue, summonInline, erasedValue}
 import scala.deriving.Mirror
-import scala.reflect.ClassTag
+import scala.reflect.{ClassTag, Enum}
 
 import org.apache.spark.sql.catalyst.expressions.{
   Expression,
@@ -143,6 +143,19 @@ object Deserializer:
       DecimalType(38, 0) // .BigIntDecimal is private
     def deserialize(path: Expression): Expression =
       createDeserializerForScalaBigInt(path)
+
+  given[E <: Enum : ClassTag]: Deserializer[E] with
+    def inputType: DataType = StringType
+
+    def deserialize(path: Expression): Expression =
+      val string = summon[Deserializer[String]].deserialize(path)
+      StaticInvoke(
+        summon[ClassTag[E]].runtimeClass,
+        ObjectType(summon[ClassTag[E]].runtimeClass),
+        "valueOf",
+        string :: Nil,
+        returnNullable = false
+      )
 
   inline given deriveArray[T](using
       d: Deserializer[T],

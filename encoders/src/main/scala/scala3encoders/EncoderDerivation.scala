@@ -13,7 +13,7 @@ given encoder[T](using
     deserializer: Deserializer[T],
     classTag: ClassTag[T]
 ): ExpressionEncoder[T] =
-  val inputObject = BoundReference(0, serializer.inputType, true)
+  val inputObject = BoundReference(0, serializer.inputType, nullable = true)
   val path = GetColumnByOrdinal(0, deserializer.inputType)
 
   ExpressionEncoder(
