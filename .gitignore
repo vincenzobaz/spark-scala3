@@ -7,3 +7,4 @@
 **/metals.sbt
 project/.bloop
 *.log
+.idea

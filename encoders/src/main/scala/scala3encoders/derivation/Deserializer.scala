@@ -18,20 +18,15 @@ trait Deserializer[T]:
   def nullable: Boolean = true
 
 object Deserializer:
-
-  // see ScalaReflection.deserializerFor
+  // See DeserializerBuildHelper.createDeserializer
   inline given deriveOpt[T](using
       d: Deserializer[T],
       ct: ClassTag[T]
   ): Deserializer[Option[T]] =
     new Deserializer[Option[T]]:
       override def inputType: DataType = d.inputType
-
       override def deserialize(path: Expression): Expression =
-        val tpe = Helper.typeBoxedJavaMapping.getOrElse(
-          d.inputType,
-          ct.runtimeClass
-        )
+        val tpe = Helper.typeBoxedJavaMapping.getOrElse(ct.runtimeClass, ct.runtimeClass)
         WrapOption(d.deserialize(path), ObjectType(tpe))
 
   given Deserializer[Int] with
