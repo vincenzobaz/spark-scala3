@@ -12,6 +12,8 @@ import org.apache.spark.sql.types.*
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.javaapi.DurationConverters
 
+import java.math.{BigDecimal => JavaBigDecimal, BigInteger => JavaBigInteger}
+
 trait Deserializer[T]:
   def inputType: DataType
   def deserialize(path: Expression): Expression
@@ -129,19 +131,25 @@ object Deserializer:
     def deserialize(path: Expression): Expression =
       createDeserializerForString(path, false)
 
-  given Deserializer[BigDecimal] with
+  given Deserializer[JavaBigDecimal] with
     def inputType: DataType =
       DecimalType.SYSTEM_DEFAULT
     def deserialize(path: Expression): Expression =
       createDeserializerForJavaBigDecimal(path, returnNullable = false)
 
-  given Deserializer[java.math.BigInteger] with
+  given Deserializer[BigDecimal] with
+    def inputType: DataType =
+      DecimalType.SYSTEM_DEFAULT
+    def deserialize(path: Expression): Expression =
+      createDeserializerForScalaBigDecimal(path, returnNullable = false)
+
+  given Deserializer[JavaBigInteger] with
     def inputType: DataType =
       DecimalType(38, 0) // .BigIntDecimal is private
     def deserialize(path: Expression): Expression =
       createDeserializerForJavaBigInteger(path, returnNullable = false)
 
-  given Deserializer[scala.math.BigInt] with
+  given Deserializer[BigInt] with
     def inputType: DataType =
       DecimalType(38, 0) // .BigIntDecimal is private
     def deserialize(path: Expression): Expression =

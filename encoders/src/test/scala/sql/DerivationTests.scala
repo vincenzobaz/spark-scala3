@@ -2,7 +2,7 @@ package scala3encoders
 
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.Encoder
-import org.apache.spark.sql.types._
+import org.apache.spark.sql.types.*
 
 class DerivationTests extends munit.FunSuite:
   test("derive encoder of case class C(x: Int, y: Long)") {
@@ -13,6 +13,34 @@ class DerivationTests extends munit.FunSuite:
         Seq(
           StructField("x", IntegerType),
           StructField("y", LongType)
+        )
+      )
+    )
+  }
+
+  test("derive encoder of case class with Scala BigDecimal and BigInt") {
+    val encoder = summon[Encoder[G]]
+      .asInstanceOf[ExpressionEncoder[G]]
+    assertEquals(
+      encoder.schema,
+      StructType(
+        Seq(
+          StructField("x", DecimalType(38, 18)),
+          StructField("y", DecimalType(38, 0))
+        )
+      )
+    )
+  }
+
+  test("derive encoder of case class with Java BigDecimal and BigInteger") {
+    val encoder = summon[Encoder[H]]
+      .asInstanceOf[ExpressionEncoder[H]]
+    assertEquals(
+      encoder.schema,
+      StructType(
+        Seq(
+          StructField("x", DecimalType(38, 18)),
+          StructField("y", DecimalType(38, 0))
         )
       )
     )

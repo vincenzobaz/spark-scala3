@@ -40,6 +40,20 @@ object Helper {
     )
   }
 
+  def createSerializerForBigDecimal(inputObject: Expression): Expression = {
+    CheckOverflow(
+      StaticInvoke(
+        Decimal.getClass,
+        DecimalType(38, 18),
+        "apply",
+        inputObject :: Nil,
+        returnNullable = false
+      ),
+      DecimalType(38, 18),
+      nullOnOverflow
+    )
+  }
+
   private def upCastToExpectedType(
       expr: Expression,
       expected: DataType,
