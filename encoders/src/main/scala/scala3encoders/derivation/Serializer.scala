@@ -11,6 +11,8 @@ import org.apache.spark.sql.types.*
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.javaapi.DurationConverters
 
+import java.math.{BigDecimal => JavaBigDecimal, BigInteger => JavaBigInteger}
+
 trait Serializer[T]:
   def inputType: DataType
   def serialize(inputObject: Expression): Expression
@@ -114,10 +116,15 @@ object Serializer:
   given Serializer[BigDecimal] with
     def inputType: DataType = ObjectType(classOf[BigDecimal])
     def serialize(inputObject: Expression): Expression =
-      Helper.createSerializerForBigInteger(inputObject)
+      Helper.createSerializerForBigDecimal(inputObject)
 
-  given Serializer[java.math.BigInteger] with
-    def inputType: DataType = ObjectType(classOf[java.math.BigInteger])
+  given Serializer[JavaBigDecimal] with
+    def inputType: DataType = ObjectType(classOf[JavaBigDecimal])
+    def serialize(inputObject: Expression): Expression =
+      Helper.createSerializerForBigDecimal(inputObject)
+
+  given Serializer[JavaBigInteger] with
+    def inputType: DataType = ObjectType(classOf[JavaBigInteger])
     def serialize(inputObject: Expression): Expression =
       Helper.createSerializerForBigInteger(inputObject)
 

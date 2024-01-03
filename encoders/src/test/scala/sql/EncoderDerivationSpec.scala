@@ -17,6 +17,8 @@ case class C(x: Int, y: Long)
 case class D(x: String, y: B)
 case class E(x: Map[String, Seq[String]], y: Array[Int], z: Set[Double])
 case class F(v: Option[String], w: Option[Long], p: (Int, Int, Int))
+case class G(x: BigDecimal, y: BigInt)
+case class H(x: java.math.BigDecimal, y: java.math.BigInteger)
 case class ChkCustom(u: Option[Instant])
 case class ChkTuple(
     tup: (String, Option[Int]),
@@ -257,6 +259,37 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
     // null will be mapped to None
     assertEquals(res(2)._1, None)
     assertEquals(res(2)._2, None)
+  }
+
+  test(
+    "derive encoder of case class G"
+  ) {
+    val encoder = summon[Encoder[G]]
+    val input = Seq(
+      G(BigDecimal(1.0001), BigInt(1)),
+      G(BigDecimal(0.0), BigInt(0)),
+      G(BigDecimal(-1.0001), BigInt(-1))
+    )
+    val res = input.toDS()
+    assertEquals(res.dtypes(0), ("x", "DecimalType(38,18)"))
+    assertEquals(res.dtypes(1), ("y", "DecimalType(38,0)"))
+    assertEquals(res.collect.toSeq, input)
+  }
+  
+  test(
+    "derive encoder of case class H"
+  ) {
+    val encoder = summon[Encoder[H]]
+    val input = Seq(
+      H(new java.math.BigDecimal("1.000100000000000000"), new java.math.BigInteger("1")),
+      H(new java.math.BigDecimal("0E-18"), new java.math.BigInteger("0")),
+      H(new java.math.BigDecimal("-1.000100000000000000"), new java.math.BigInteger("-1"))
+    )
+    val res = input.toDS()
+    assertEquals(res.dtypes(0), ("x", "DecimalType(38,18)"))
+    assertEquals(res.dtypes(1), ("y", "DecimalType(38,0)"))
+
+    assertEquals(res.collect.toSeq, input)
   }
 
   test(
