@@ -33,7 +33,8 @@ val unnamedJavaOptions = List(
   "--add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED"
 )
 
-lazy val root = (project in file("."))
+lazy val root = project
+  .in(file("."))
   .aggregate(udf)
   .aggregate(encoders)
   .aggregate(examples.projectRefs: _*)
@@ -42,7 +43,8 @@ lazy val root = (project in file("."))
     publish / skip := true
   )
 
-lazy val encoders = (project in file("encoders"))
+lazy val encoders = project
+  .in(file("encoders"))
   .settings(
     name := "spark-scala3-encoders",
     libraryDependencies ++= Seq(
@@ -55,7 +57,7 @@ lazy val encoders = (project in file("encoders"))
   )
   .settings(publishSettings)
 
-lazy val udf = (project in file("udf"))
+lazy val udf = project
   .in(file("udf"))
   .settings(
     name := "spark-scala3-udf",
@@ -164,4 +166,9 @@ lazy val publishSettings = Def.settings(
 )
 
 ThisBuild / tlSitePublishBranch := Some("main")
-lazy val docs = project.in(file("site")).enablePlugins(TypelevelSitePlugin)
+lazy val docs = project
+  .in(file("site"))
+  .enablePlugins(TypelevelSitePlugin)
+  .settings(
+    mdocIn := baseDirectory.value / "src"
+  )
