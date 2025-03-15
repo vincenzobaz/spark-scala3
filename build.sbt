@@ -91,8 +91,8 @@ addCommandAlias(
 
 // Spark versions to check. Always most recent first.
 lazy val sparkVersions = List(
-  SparkVersionAxis("_spark35_", "spark350", "3.5.0"),
-  SparkVersionAxis("_spark34_", "spark341", "3.4.1"),
+  SparkVersionAxis("_spark35_", "spark350", "3.5.5"),
+  SparkVersionAxis("_spark34_", "spark341", "3.4.4"),
   SparkVersionAxis("_spark33_", "spark333", "3.3.3")
 )
 
@@ -162,3 +162,6 @@ lazy val publishSettings = Def.settings(
   versionScheme := Some("early-semver"),
   versionPolicyIntention := Compatibility.None
 )
+
+ThisBuild / tlSitePublishBranch := Some("main")
+lazy val docs = project.in(file("site")).enablePlugins(TypelevelSitePlugin)
