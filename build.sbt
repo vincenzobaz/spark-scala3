@@ -33,7 +33,8 @@ val unnamedJavaOptions = List(
   "--add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED"
 )
 
-lazy val root = (project in file("."))
+lazy val root = project
+  .in(file("."))
   .aggregate(udf)
   .aggregate(encoders)
   .aggregate(examples.projectRefs: _*)
@@ -42,7 +43,8 @@ lazy val root = (project in file("."))
     publish / skip := true
   )
 
-lazy val encoders = (project in file("encoders"))
+lazy val encoders = project
+  .in(file("encoders"))
   .settings(
     name := "spark-scala3-encoders",
     libraryDependencies ++= Seq(
@@ -55,7 +57,7 @@ lazy val encoders = (project in file("encoders"))
   )
   .settings(publishSettings)
 
-lazy val udf = (project in file("udf"))
+lazy val udf = project
   .in(file("udf"))
   .settings(
     name := "spark-scala3-udf",
@@ -91,8 +93,8 @@ addCommandAlias(
 
 // Spark versions to check. Always most recent first.
 lazy val sparkVersions = List(
-  SparkVersionAxis("_spark35_", "spark350", "3.5.0"),
-  SparkVersionAxis("_spark34_", "spark341", "3.4.1"),
+  SparkVersionAxis("_spark35_", "spark350", "3.5.5"),
+  SparkVersionAxis("_spark34_", "spark341", "3.4.4"),
   SparkVersionAxis("_spark33_", "spark333", "3.3.3")
 )
 
@@ -162,3 +164,11 @@ lazy val publishSettings = Def.settings(
   versionScheme := Some("early-semver"),
   versionPolicyIntention := Compatibility.None
 )
+
+ThisBuild / tlSitePublishBranch := Some("main")
+lazy val docs = project
+  .in(file("site"))
+  .enablePlugins(TypelevelSitePlugin)
+  .settings(
+    mdocIn := baseDirectory.value / "src"
+  )
