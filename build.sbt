@@ -165,10 +165,14 @@ lazy val publishSettings = Def.settings(
   versionPolicyIntention := Compatibility.None
 )
 
-ThisBuild / tlSitePublishBranch := Some("main")
+import laika.helium.config._
+import laika.ast.Path.Root
 lazy val docs = project
   .in(file("site"))
   .enablePlugins(TypelevelSitePlugin)
   .settings(
-    mdocIn := baseDirectory.value / "src"
+    mdocIn := baseDirectory.value / "src",
+    tlSiteHelium := tlSiteHelium.value.site.topNavigationBar(
+      homeLink = IconLink.internal(Root / "index.md", HeliumIcon.home)
+    )
   )
