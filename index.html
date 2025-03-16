@@ -6,7 +6,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="generator" content="Typelevel Laika + Helium Theme" />
-  <title>Apache Spark and Scala 3</title>
+  <title>spark-scala3</title>
   
   <meta name="author" content="spark-scala3 contributors"/>
   
@@ -67,7 +67,8 @@
   </div>
 
   <ul class="nav-list">
-    <li class="level1 active nav-leaf"><a href="#">Apache Spark and Scala 3</a></li>
+    <li class="level1 active nav-leaf"><a href="#"><code>spark-scala3</code></a></li>
+    <li class="level1 nav-leaf"><a href="how_it_works.html">How it works</a></li>
   </ul>
 
 </nav>
@@ -76,18 +77,13 @@
 
       
 <nav id="page-nav">
-  <p class="header"><a href="#">Apache Spark and Scala 3</a></p>
+  <p class="header"><a href="#"><code>spark-scala3</code></a></p>
 
   <ul class="nav-list">
-    <li class="level1 nav-leaf"><a href="#spark-sql-dataset">Spark SQL: <code>Dataset</code></a></li>
-    <li class="level1 nav-leaf"><a href="#tldr-how-to-fix-the-error-with-this-libray">TLDR: How to fix the error with this libray:</a></li>
-    <li class="level1 nav-leaf"><a href="#understanding-the-error">Understanding the error</a></li>
-    <li class="level1 nav-leaf"><a href="#encoders-enable-typed-code-to-be-efficient"><code>Encoder</code>s enable typed code to be efficient</a></li>
-    <li class="level1 nav-leaf"><a href="#we-can-finally-understand-the-error">We can finally understand the error</a></li>
-    <li class="level1 nav-leaf"><a href="#solution-provide-scala-3-reflection-logic-to-generate-encoders">Solution: provide Scala 3 reflection logic to generate encoders</a></li>
-    <li class="level1 nav-node"><a href="#deriving-encoders-in-scala-3">Deriving <code>Encoder</code>s in Scala 3</a></li>
-    <li class="level2 nav-leaf"><a href="#step-1-build-an-encoder">Step 1: build an encoder</a></li>
-    <li class="level2 nav-leaf"><a href="#step-2-generalizing">Step 2: Generalizing</a></li>
+    <li class="level1 nav-leaf"><a href="#how-to-get-this-library">How to get this library</a></li>
+    <li class="level1 nav-leaf"><a href="#apache-spark-version">Apache Spark version</a></li>
+    <li class="level1 nav-leaf"><a href="#encoders">Encoders</a></li>
+    <li class="level1 nav-leaf"><a href="#udfs">UDFs</a></li>
   </ul>
 
   <p class="footer"></p>
@@ -96,272 +92,60 @@
 
       <main class="content">
 
-        <h1 id="apache-spark-and-scala-3" class="title">Apache Spark and Scala 3</h1>
-        <p>Apache Spark (from now on just Spark) is published for Scala 2.12 and for Scala 2.13.
-        Therefore, even if not built for Scala 3, your Scala 3 project can depend and use Spark via
-        <a href="https://www.scala-sbt.org/1.x/docs/Cross-Build.html#Scala+3+specific+cross-versions"><code>cross(CrossVersion.for3Use2_13)</code></a></p>
-        <p>This gives you access to the <code>RDD</code> API.</p>
+        <h1 id="spark-scala3" class="title"><code>spark-scala3</code></h1>
+        <p>This project aims at making the adoption of Scala 3 easier for projects using
+        Apache Spark.</p>
         
-        <h2 id="spark-sql-dataset" class="section"><a class="anchor-link left" href="#spark-sql-dataset"><i class="icofont-laika link">&#xef71;</i></a>Spark SQL: <code>Dataset</code></h2>
-        <p>Spark Datasets give us the performances of Dataframes with the addition of type safety.
-        What happens if we try to use Datasets with Scala 3?</p>
-        <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">org</span><span>.</span><span class="identifier">apache</span><span>.</span><span class="identifier">spark</span><span>.</span><span class="identifier">sql</span><span>.</span><span class="type-name">SparkSession</span><span>
-</span><span class="keyword">import</span><span> </span><span class="identifier">org</span><span>.</span><span class="identifier">apache</span><span>.</span><span class="identifier">spark</span><span>.</span><span class="identifier">sql</span><span>.*
-</span><span class="keyword">import</span><span> </span><span class="identifier">org</span><span>.</span><span class="identifier">apache</span><span>.</span><span class="identifier">spark</span><span>.</span><span class="identifier">sql</span><span>.</span><span class="identifier">types</span><span>.*
-</span><span class="keyword">import</span><span> </span><span class="identifier">buildinfo</span><span>.</span><span class="type-name">BuildInfo</span><span>.</span><span class="identifier">inputDirectory</span><span>
-
-</span><span class="annotation">@main</span><span> </span><span class="keyword">def</span><span> </span><span class="declaration-name">wordcountSql</span><span> =
-  </span><span class="keyword">val</span><span> </span><span class="identifier">spark</span><span> = </span><span class="type-name">SparkSession</span><span>.</span><span class="identifier">builder</span><span>().</span><span class="identifier">master</span><span>(</span><span class="string-literal">&quot;local&quot;</span><span>).</span><span class="identifier">getOrCreate</span><span>
-  </span><span class="keyword">import</span><span> </span><span class="identifier">spark</span><span>.</span><span class="identifier">implicits</span><span>.*
-
-  </span><span class="keyword">val</span><span> </span><span class="identifier">sc</span><span> = </span><span class="identifier">spark</span><span>.</span><span class="identifier">sparkContext</span><span>
-
-  </span><span class="keyword">val</span><span> </span><span class="identifier">textFile</span><span> = </span><span class="identifier">sc</span><span>.</span><span class="identifier">textFile</span><span>(</span><span class="identifier">inputDirectory</span><span>.</span><span class="identifier">getPath</span><span> + </span><span class="string-literal">&quot;/lorem-ipsum.txt&quot;</span><span>)
-  </span><span class="keyword">val</span><span> </span><span class="identifier">words</span><span>: </span><span class="type-name">Dataset</span><span>[</span><span class="type-name">String</span><span>] = </span><span class="identifier">textFile</span><span>.</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">line</span><span> =&gt; </span><span class="identifier">line</span><span>.</span><span class="identifier">split</span><span>(</span><span class="string-literal">&quot; &quot;</span><span>)).</span><span class="identifier">toDS</span><span>
-
-  </span><span class="keyword">val</span><span> </span><span class="identifier">counts</span><span>: </span><span class="type-name">Dataset</span><span>[(</span><span class="type-name">String</span><span>, </span><span class="type-name">Double</span><span>)] =
-    </span><span class="identifier">words</span><span>
-      .</span><span class="identifier">map</span><span>(</span><span class="identifier">word</span><span> =&gt; (</span><span class="identifier">word</span><span>, </span><span class="number-literal">1d</span><span>))
-      .</span><span class="identifier">groupByKey</span><span>((</span><span class="identifier">word</span><span>, </span><span class="identifier">_</span><span>) =&gt; </span><span class="identifier">word</span><span>)
-      .</span><span class="identifier">reduceGroups</span><span>((</span><span class="identifier">a</span><span>, </span><span class="identifier">b</span><span>) =&gt; (</span><span class="identifier">a</span><span class="number-literal">._1</span><span>, </span><span class="identifier">a</span><span class="number-literal">._2</span><span> + </span><span class="identifier">b</span><span class="number-literal">._2</span><span>))
-      .</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span class="number-literal">._2</span><span>)</span></code></pre>
-        <p>This will return a cryptic error:</p>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span>[</span><span class="identifier">error</span><span>] </span><span class="number-literal">22</span><span> |        .</span><span class="identifier">map</span><span>(</span><span class="identifier">word</span><span> =&gt; (</span><span class="identifier">word</span><span>, </span><span class="number-literal">1d</span><span>))
-[</span><span class="identifier">error</span><span>]    |                                ^
-[</span><span class="identifier">error</span><span>]    |</span><span class="type-name">Unable</span><span> </span><span class="identifier">to</span><span> </span><span class="identifier">find</span><span> </span><span class="identifier">encoder</span><span> </span><span class="keyword">for</span><span> </span><span class="keyword">type</span><span> (</span><span class="type-name">String</span><span>, </span><span class="type-name">Double</span><span>). </span><span class="type-name">An</span><span> </span><span class="keyword">implicit</span><span> </span><span class="type-name">Encoder</span><span>[(</span><span class="type-name">String</span><span>, </span><span class="type-name">Double</span><span>)] </span><span class="identifier">is</span><span> </span><span class="identifier">needed</span><span> </span><span class="identifier">to</span><span> </span><span class="identifier">store</span><span> (</span><span class="type-name">String</span><span>, </span><span class="type-name">Double</span><span>) </span><span class="identifier">instances</span><span> </span><span class="identifier">in</span><span> </span><span class="identifier">a</span><span> </span><span class="type-name">Dataset</span><span>. </span><span class="type-name">Primitive</span><span> </span><span class="identifier">types</span><span> (</span><span class="type-name">Int</span><span>, </span><span class="type-name">String</span><span>, </span><span class="identifier">etc</span><span>) </span><span class="identifier">and</span><span> </span><span class="type-name">Product</span><span> </span><span class="identifier">types</span><span> (</span><span class="keyword">case</span><span> </span><span class="identifier">classes</span><span>) </span><span class="identifier">are</span><span> </span><span class="identifier">supported</span><span> </span><span class="identifier">by</span><span> </span><span class="identifier">importing</span><span> </span><span class="identifier">spark</span><span>.</span><span class="identifier">implicits</span><span>.</span><span class="identifier">_</span><span>  </span><span class="type-name">Support</span><span> </span><span class="keyword">for</span><span> </span><span class="identifier">serializing</span><span> </span><span class="identifier">other</span><span> </span><span class="identifier">types</span><span> </span><span class="identifier">will</span><span> </span><span class="identifier">be</span><span> </span><span class="identifier">added</span><span> </span><span class="identifier">in</span><span> </span><span class="identifier">future</span><span> </span><span class="identifier">releases</span><span>..
-[</span><span class="identifier">error</span><span>]    |</span><span class="type-name">I</span><span> </span><span class="identifier">found</span><span>:
-[</span><span class="identifier">error</span><span>]    |
-[</span><span class="identifier">error</span><span>]    |    </span><span class="identifier">spark</span><span>.</span><span class="identifier">implicits</span><span>.</span><span class="identifier">newProductEncoder</span><span>[(</span><span class="type-name">String</span><span>, </span><span class="type-name">Double</span><span>)](
-[</span><span class="identifier">error</span><span>]    |      </span><span class="comment">/* missing */</span><span class="identifier">summon</span><span>[</span><span class="identifier">reflect</span><span>.</span><span class="identifier">runtime</span><span>.</span><span class="identifier">universe</span><span>.</span><span class="type-name">TypeTag</span><span>[(</span><span class="type-name">String</span><span>, </span><span class="type-name">Double</span><span>)]])
-[</span><span class="identifier">error</span><span>]    |
-[</span><span class="identifier">error</span><span>]    |</span><span class="type-name">But</span><span> </span><span class="identifier">no</span><span> </span><span class="keyword">implicit</span><span> </span><span class="identifier">values</span><span> </span><span class="identifier">were</span><span> </span><span class="identifier">found</span><span> </span><span class="identifier">that</span><span> </span><span class="keyword">match</span><span> </span><span class="keyword">type</span><span> </span><span class="identifier">reflect</span><span>.</span><span class="identifier">runtime</span><span>.</span><span class="identifier">universe</span><span>.</span><span class="type-name">TypeTag</span><span>[(</span><span class="type-name">String</span><span>, </span><span class="type-name">Double</span><span>)].
-[</span><span class="identifier">error</span><span>] </span><span class="identifier">one</span><span> </span><span class="identifier">error</span><span> </span><span class="identifier">found</span></code></pre>
-        <p>The errors indicates that it cannot find and <code>implicit Encoder[(String, Double)]</code> and that we need to
-        <code>import spark.implicits._</code>. But we did that!</p>
+        <h2 id="how-to-get-this-library" class="section"><a class="anchor-link left" href="#how-to-get-this-library"><i class="icofont-laika link">&#xef71;</i></a>How to get this library</h2>
+        <p>Add the following dependency to your <code>build.sbt</code>:</p>
+        <pre><code>&quot;io.github.vincenzobaz&quot; %% &quot;spark-scala3-encoders&quot; % &quot;0.2.6&quot;
+&quot;io.github.vincenzobaz&quot; %% &quot;spark-scala3-udf&quot; % &quot;0.2.6&quot;</code></pre>
         
-        <h2 id="tldr-how-to-fix-the-error-with-this-libray" class="section"><a class="anchor-link left" href="#tldr-how-to-fix-the-error-with-this-libray"><i class="icofont-laika link">&#xef71;</i></a>TLDR: How to fix the error with this libray:</h2>
-        <ol class="arabic">
-          <li>Add the library as dependency: <code>io.github.vincenzobaz&quot; %% &quot;spark-scala3-encoders&quot; % &quot;0.2.6&quot;</code></li>
-        </ol>
-        <ol class="arabic">
-          <li>Import the library after Spark implicits:</li>
-        </ol>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">spark</span><span>.</span><span class="identifier">implicits</span><span>.*
-</span><span class="keyword">import</span><span> </span><span class="identifier">scala3encoders</span><span>.</span><span class="keyword">given</span></code></pre>
-        <p>Read on if you want to know more about how and why this works.</p>
+        <h2 id="apache-spark-version" class="section"><a class="anchor-link left" href="#apache-spark-version"><i class="icofont-laika link">&#xef71;</i></a>Apache Spark version</h2>
+        <p>As of version 3.2, Spark is published for Scala 2.13, which makes it possible to be used from Scala 3 as a library.</p>
+        <p>You can add it in your <code>build.sbt</code> with:</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">sparkVersion</span><span> = </span><span class="string-literal">&quot;3.3.2&quot;</span><span>
+
+</span><span class="identifier">libraryDependencies</span><span> ++= </span><span class="type-name">Seq</span><span>(
+  (</span><span class="string-literal">&quot;org.apache.spark&quot;</span><span> %% </span><span class="string-literal">&quot;spark-core&quot;</span><span> % </span><span class="identifier">sparkVersion</span><span>).</span><span class="identifier">cross</span><span>(</span><span class="type-name">CrossVersion</span><span>.</span><span class="identifier">for3Use2_13</span><span>),
+  (</span><span class="string-literal">&quot;org.apache.spark&quot;</span><span> %% </span><span class="string-literal">&quot;spark-sql&quot;</span><span> % </span><span class="identifier">sparkVersion</span><span>).</span><span class="identifier">cross</span><span>(</span><span class="type-name">CrossVersion</span><span>.</span><span class="identifier">for3Use2_13</span><span>)
+)</span></code></pre>
         
-        <h2 id="understanding-the-error" class="section"><a class="anchor-link left" href="#understanding-the-error"><i class="icofont-laika link">&#xef71;</i></a>Understanding the error</h2>
-        <p>The error tells us that the issue occurs on <code>.map(word =&gt; (word, 1d))</code> because the compiler cannot find a
-        <code>implicit Encoder[(String, Double)]</code>. Let&#39;s unpack it:</p>
+        <h2 id="encoders" class="section"><a class="anchor-link left" href="#encoders"><i class="icofont-laika link">&#xef71;</i></a>Encoders</h2>
+        <p>The Spark <code>sql</code> API provides the <code>Dataset[T]</code> abstraction. Most methods of this
+        type require an implicit (<code>given</code> in Scala 3 parlance) instance of <code>Encoder[T]</code>.</p>
+        <p>These instances are automatically derived when you use:</p>
+        <pre><code>scala import sqlContext.implicits._</code></pre>
+        <p>Unfortunately this derivation relies on Scala 2.13 runtime reflection which is
+        not supported in Scala 3.</p>
+        <p>This library provides you with an alternative compile time encoder derivation which
+        you can enable with the following import:</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">scala3encoders</span><span>.</span><span class="keyword">given</span></code></pre>
+        
+        <h2 id="udfs" class="section"><a class="anchor-link left" href="#udfs"><i class="icofont-laika link">&#xef71;</i></a>UDFs</h2>
+        <p><code>Udf</code> or &quot;user defined functions&quot; enable Spark to use own functions that process rows.
+        The main routine for creating and registering those functions are 
+        <code>spark.sql.functions.udf</code> and <code>SparkSession.register</code>. These cannot be replaced as simply as the encoders.
+        The <code>udf</code> call itself is a generic function using <code>TypeTags</code> which are not available in Scala 3. The <code>register</code> is needed to make the calls available inside a <code>spark.sql</code> statement with a string identifier.</p>
+        <p>To use spark-scala3 <code>udf</code>:</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">scala3udf</span><span>.{</span><span class="type-name">Udf</span><span> =&gt; </span><span class="identifier">udf</span><span>} </span><span class="comment">// &quot;old&quot; udf doesn&#39;t interfer with new scala3udf.udf when renamed</span></code></pre>
+        <p>With the renaming in place, you can use the call <code>udf(lambda)</code> as before without interfering with the <code>udf</code> function in <code>org.apache.spark.sql.functions</code>. Instead of calling <code>spark.register(myFun1)</code>, you can call either:</p>
         <ul>
-          <li><code>word =&gt; (word, 1d)</code> is a an anoymous function that produces a <code>(String, Double)</code></li>
+          <li>
+            <p><code>myFun1.registerWith(spark, &quot;myFun1&quot;)</code></p>
+          </li>
+          <li>
+            <p><code>udf.registerWith(spark, myFun1, myFun2, ...)</code> - this will automatically name the used parameter value names
+            Instead of an explicit Spark session an implicit value could also be used, e.g. using <code>given spark: SparkSession = SparkSession.builder()...getOrCreate</code>. Then the equivalent calls are:</p>
+          </li>
+          <li>
+            <p><code>myFun1.register(&quot;myFun1&quot;)</code></p>
+          </li>
+          <li>
+            <p><code>udf.register(myFun1, myFun2, ...)</code></p>
+          </li>
         </ul>
-        <ul>
-          <li>The signature of <code>Dataset.map</code> is:</li>
-        </ul>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">class</span><span> </span><span class="type-name">Dataset</span><span>[</span><span class="type-name">T</span><span>] {
-  </span><span class="comment">// More things
-</span><span>  </span><span class="keyword">def</span><span> </span><span class="declaration-name">map</span><span>[</span><span class="type-name">U</span><span> : </span><span class="type-name">Encoder</span><span>](</span><span class="identifier">func</span><span>: </span><span class="type-name">T</span><span> =&gt; </span><span class="type-name">U</span><span>): </span><span class="type-name">Dataset</span><span>[</span><span class="type-name">U</span><span>] = ???
-  </span><span class="comment">// More things
-</span><span>}</span></code></pre>
-        <p>which we is equivalent to</p>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">class</span><span> </span><span class="type-name">Dataset</span><span>[</span><span class="type-name">T</span><span>] {
-  </span><span class="comment">// More things
-</span><span>  </span><span class="keyword">def</span><span> </span><span class="declaration-name">map</span><span>[</span><span class="type-name">U</span><span>](</span><span class="identifier">func</span><span>: </span><span class="type-name">T</span><span> =&gt; </span><span class="type-name">U</span><span>)(</span><span class="keyword">implicit</span><span> </span><span class="identifier">encoder</span><span>: </span><span class="type-name">Encoder</span><span>[</span><span class="type-name">U</span><span>]): </span><span class="type-name">Dataset</span><span>[</span><span class="type-name">U</span><span>]
-  </span><span class="comment">// More things
-</span><span>}</span></code></pre>
-        <p>This explains why the compiler is hunting for an <code>Encoder[(String, Double)]</code>!</p>
-        <p><code>map</code> is only one of the functions that require an <code>Encoder</code>, have a look at 
-        the <a href="https://spark.apache.org/docs/latest/api/scala/org/apache/spark/sql/Dataset.html"><code>Dataset</code> documentation</a>
-        to see more.</p>
-        
-        <h2 id="encoders-enable-typed-code-to-be-efficient" class="section"><a class="anchor-link left" href="#encoders-enable-typed-code-to-be-efficient"><i class="icofont-laika link">&#xef71;</i></a><code>Encoder</code>s enable typed code to be efficient</h2>
-        <p>We refer again to the documentation: <a href="https://spark.apache.org/docs/latest/api/scala/org/apache/spark/sql/Encoder.html"><code>Encoder</code></a></p>
-        <blockquote>Used to convert a JVM object of type T to and from the internal Spark SQL representation</blockquote>
-        <p><code>T</code> in our case is <code>(String, Dobule)</code>, which is the type of a JVM object, and that needs to be converted
-        to the <em>internal representation</em>. The motivation is explained in the <a href="https://spark.apache.org/docs/latest/sql-programming-guide.html">SQL section of the Spark guide</a>:</p>
-        <blockquote>the interfaces provided by Spark SQL provide Spark with more information about the structure of both the data
-        and the computation being performed. Internally, Spark SQL uses this extra information to perform extra optimizations</blockquote>
-        <p>This is the motivation of Spark SQL: objects expressed in the different languages (Python, Scala, SQL, ...) are
-        transformed to an internal format, which allows the Spark SQL Engine to understand and optimize queries.
-        This enables important <a href="https://community.cloudera.com/t5/Community-Articles/Spark-RDDs-vs-DataFrames-vs-SparkSQL/ta-p/246547">performance gains</a></p>
-        
-        <h2 id="we-can-finally-understand-the-error" class="section"><a class="anchor-link left" href="#we-can-finally-understand-the-error"><i class="icofont-laika link">&#xef71;</i></a>We can finally understand the error</h2>
-        <p>We now know what an <code>Encoder</code> and why it is needed.
-        We still have not cleared why this happens with Scala 3 only.</p>
-        <p>In Scala 2, we get all of the required implicits, including <code>Encoder</code>,
-        from <code>import spark.implicits._</code>: we import all the contents of the 
-        <a href="https://spark.apache.org/docs/latest/api/scala/org/apache/spark/sql/SparkSession$implicits$.html"><code>implicits</code></a> 
-        object.</p>
-        <p>This, in turn, extends <a href="https://spark.apache.org/docs/latest/api/scala/org/apache/spark/sql/SQLImplicits.html"><code>SQLImplicits</code></a> which
-        contains all of the encoder definitions that we need.
-        Besides the simple ones that return a connstant such as:</p>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span>  </span><span class="keyword">implicit</span><span> </span><span class="keyword">def</span><span> </span><span class="declaration-name">newDoubleEncoder</span><span>: </span><span class="type-name">Encoder</span><span>[</span><span class="type-name">Double</span><span>] = </span><span class="type-name">Encoders</span><span>.</span><span class="identifier">scalaDouble</span></code></pre>
-        <p>we can see more cryptic ones. In our example, we encode a tuple and the error message tells us which encoder it tried <code>newProductEncoder[(String, Double)]</code>.</p>
-        <p>This is defined as </p>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span>  </span><span class="keyword">def</span><span> </span><span class="declaration-name">newProductSeqEncoder</span><span>[</span><span class="type-name">A</span><span> &lt;: </span><span class="type-name">Product</span><span> : </span><span class="type-name">TypeTag</span><span>]: </span><span class="type-name">Encoder</span><span>[</span><span class="type-name">Seq</span><span>[</span><span class="type-name">A</span><span>]] = </span><span class="type-name">ExpressionEncoder</span><span>()</span></code></pre>
-        <p>Our tuple is a <code>Product</code> and compiler will provide a <code>TypeTag</code>, no problem here.
-        What is this magic <code>ExpressionEncoder</code>?</p>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">object</span><span> </span><span class="type-name">ExpressionEncoder</span><span> {
-
-  </span><span class="keyword">def</span><span> </span><span class="declaration-name">apply</span><span>[</span><span class="type-name">T</span><span> : </span><span class="type-name">TypeTag</span><span>](): </span><span class="type-name">ExpressionEncoder</span><span>[</span><span class="type-name">T</span><span>] = {
-    </span><span class="identifier">apply</span><span>(</span><span class="type-name">ScalaReflection</span><span>.</span><span class="identifier">encoderFor</span><span>[</span><span class="type-name">T</span><span>])
-  }
-  </span><span class="comment">// More things</span></code></pre>
-        <p>A couple of go-to-definitions lead us to <a href="https://github.com/apache/spark/blob/master/sql/api/src/main/scala/org/apache/spark/sql/catalyst/ScalaReflection.scala#L258">this <code>encoderFor</code> method</a>.
-        The core thing to retain is that <strong>this relies on the Scala 2 reflection</strong> API. Therefore this code cannot be
-        run be compiled by Scala 3. More info on <a href="https://docs.scala-lang.org/scala3/guides/migration/tutorial-macro-cross-building.html">Cross building a macro library.</a>.</p>
-        
-        <h2 id="solution-provide-scala-3-reflection-logic-to-generate-encoders" class="section"><a class="anchor-link left" href="#solution-provide-scala-3-reflection-logic-to-generate-encoders"><i class="icofont-laika link">&#xef71;</i></a>Solution: provide Scala 3 reflection logic to generate encoders</h2>
-        <p>This library implements a layer of Scala 3 reflection logic to replace the one provided by Spark.</p>
-        <p>Scala 3 metaprogramming allows us to do this elegantly, using the new <code>inline</code> mechanisms, meaning that the generation will also
-        <strong>entirely happen at compile time</strong>, as opposed to the Scala 2 Spark logic which relies on <em>run-time</em> reflection.</p>
-        
-        <h1 id="deriving-encoders-in-scala-3" class="section"><a class="anchor-link left" href="#deriving-encoders-in-scala-3"><i class="icofont-laika link">&#xef71;</i></a>Deriving <code>Encoder</code>s in Scala 3</h1>
-        
-        <h2 id="step-1-build-an-encoder" class="section"><a class="anchor-link left" href="#step-1-build-an-encoder"><i class="icofont-laika link">&#xef71;</i></a>Step 1: build an encoder</h2>
-        <p>The <a href="https://spark.apache.org/docs/latest/api/scala/org/apache/spark/sql/Encoders$.html"><code>Encoders</code> object</a> provides us with some
-        tools to create encoders.</p>
-        <p>We can use it to build one for our example</p>
-        <pre><code class="nohighlight"><span>  </span><span class="keyword">val</span><span> </span><span class="identifier">spark</span><span> = </span><span class="type-name">SparkSession</span><span>.</span><span class="identifier">builder</span><span>().</span><span class="identifier">master</span><span>(</span><span class="string-literal">&quot;local&quot;</span><span>).</span><span class="identifier">getOrCreate</span><span>
-  </span><span class="keyword">val</span><span> </span><span class="identifier">sc</span><span> = </span><span class="identifier">spark</span><span>.</span><span class="identifier">sparkContext</span><span>
-  </span><span class="keyword">import</span><span> </span><span class="identifier">spark</span><span>.</span><span class="identifier">implicits</span><span>.*
-
-  </span><span class="comment">// Our encoder
-</span><span>  </span><span class="keyword">val</span><span> </span><span class="identifier">myFirstEncoder</span><span>: </span><span class="type-name">Encoder</span><span>[(</span><span class="type-name">String</span><span>, </span><span class="type-name">Double</span><span>)] =
-    </span><span class="type-name">Encoders</span><span>.</span><span class="identifier">tuple</span><span>[</span><span class="type-name">String</span><span>, </span><span class="type-name">Double</span><span>](</span><span class="identifier">strEncoder</span><span>, </span><span class="type-name">Encoders</span><span>.</span><span class="identifier">scalaDouble</span><span>)
-
-  </span><span class="keyword">val</span><span> </span><span class="identifier">textFile</span><span> = </span><span class="identifier">sc</span><span>.</span><span class="identifier">textFile</span><span>(</span><span class="identifier">inputDirectory</span><span>.</span><span class="identifier">getPath</span><span> + </span><span class="string-literal">&quot;/lorem-ipsum.txt&quot;</span><span>)
-  </span><span class="keyword">val</span><span> </span><span class="identifier">words</span><span>: </span><span class="type-name">Dataset</span><span>[</span><span class="type-name">String</span><span>] = </span><span class="identifier">textFile</span><span>.</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">line</span><span> =&gt; </span><span class="identifier">line</span><span>.</span><span class="identifier">split</span><span>(</span><span class="string-literal">&quot; &quot;</span><span>)).</span><span class="identifier">toDS</span><span>
-
-  </span><span class="keyword">val</span><span> </span><span class="identifier">counts</span><span>: </span><span class="type-name">Dataset</span><span>[(</span><span class="type-name">String</span><span>, </span><span class="type-name">Double</span><span>)] =
-    </span><span class="identifier">words</span><span>
-      .</span><span class="identifier">map</span><span>(</span><span class="identifier">word</span><span> =&gt; (</span><span class="identifier">word</span><span>, </span><span class="number-literal">1d</span><span>))(</span><span class="identifier">myFirstEncoder</span><span>) </span><span class="comment">// We pass it manually
-</span><span>      .</span><span class="identifier">groupByKey</span><span>((</span><span class="identifier">word</span><span>, </span><span class="identifier">_</span><span>) =&gt; </span><span class="identifier">word</span><span>)
-      .</span><span class="identifier">reduceGroups</span><span>((</span><span class="identifier">a</span><span>, </span><span class="identifier">b</span><span>) =&gt; (</span><span class="identifier">a</span><span class="number-literal">._1</span><span>, </span><span class="identifier">a</span><span class="number-literal">._2</span><span> + </span><span class="identifier">b</span><span class="number-literal">._2</span><span>))
-      .</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span class="number-literal">._2</span><span>)(</span><span class="identifier">myFirstEncoder</span><span>) </span><span class="comment">// We pass it manually</span></code></pre>
-        <p>We can use Scala&#39;s <a href="https://docs.scala-lang.org/scala3/reference/contextual/index.html#the-new-design-1">Contextual abstractions</a>
-        to reduce boilerplate code:</p>
-        <pre><code class="nohighlight"><span>  </span><span class="keyword">val</span><span> </span><span class="identifier">spark</span><span> = </span><span class="type-name">SparkSession</span><span>.</span><span class="identifier">builder</span><span>().</span><span class="identifier">master</span><span>(</span><span class="string-literal">&quot;local&quot;</span><span>).</span><span class="identifier">getOrCreate</span><span>
-  </span><span class="keyword">val</span><span> </span><span class="identifier">sc</span><span> = </span><span class="identifier">spark</span><span>.</span><span class="identifier">sparkContext</span><span>
-  </span><span class="keyword">import</span><span> </span><span class="identifier">spark</span><span>.</span><span class="identifier">implicits</span><span>.*
-  </span><span class="comment">// Our encoder
-</span><span>  </span><span class="keyword">given</span><span> </span><span class="type-name">Encoder</span><span>[(</span><span class="type-name">String</span><span>, </span><span class="type-name">Double</span><span>)] =
-    </span><span class="type-name">Encoders</span><span>.</span><span class="identifier">tuple</span><span>[</span><span class="type-name">String</span><span>, </span><span class="type-name">Double</span><span>](</span><span class="type-name">Encoders</span><span>.</span><span class="type-name">STRING</span><span>, </span><span class="type-name">Encoders</span><span>.</span><span class="identifier">scalaDouble</span><span>)
-
-  </span><span class="keyword">val</span><span> </span><span class="identifier">textFile</span><span> = </span><span class="identifier">sc</span><span>.</span><span class="identifier">textFile</span><span>(</span><span class="identifier">inputDirectory</span><span>.</span><span class="identifier">getPath</span><span> + </span><span class="string-literal">&quot;/lorem-ipsum.txt&quot;</span><span>)
-  </span><span class="keyword">val</span><span> </span><span class="identifier">words</span><span>: </span><span class="type-name">Dataset</span><span>[</span><span class="type-name">String</span><span>] = </span><span class="identifier">textFile</span><span>.</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">line</span><span> =&gt; </span><span class="identifier">line</span><span>.</span><span class="identifier">split</span><span>(</span><span class="string-literal">&quot; &quot;</span><span>)).</span><span class="identifier">toDS</span><span>
-
-  </span><span class="keyword">val</span><span> </span><span class="identifier">counts</span><span>: </span><span class="type-name">Dataset</span><span>[(</span><span class="type-name">String</span><span>, </span><span class="type-name">Double</span><span>)] =
-    </span><span class="identifier">words</span><span>
-      .</span><span class="identifier">map</span><span>(</span><span class="identifier">word</span><span> =&gt; (</span><span class="identifier">word</span><span>, </span><span class="number-literal">1d</span><span>)) </span><span class="comment">// inferred by compiler
-</span><span>      .</span><span class="identifier">groupByKey</span><span>((</span><span class="identifier">word</span><span>, </span><span class="identifier">_</span><span>) =&gt; </span><span class="identifier">word</span><span>)
-      .</span><span class="identifier">reduceGroups</span><span>((</span><span class="identifier">a</span><span>, </span><span class="identifier">b</span><span>) =&gt; (</span><span class="identifier">a</span><span class="number-literal">._1</span><span>, </span><span class="identifier">a</span><span class="number-literal">._2</span><span> + </span><span class="identifier">b</span><span class="number-literal">._2</span><span>))
-      .</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span class="number-literal">._2</span><span>) </span><span class="comment">// inferred by compiler</span></code></pre>
-        <p><strong>We see that we can define custom <code>Encoder</code>s without relying on <code>spark.implicits</code> and that we
-        can use contextual abstractions to propagate them without code changes.</strong></p>
-        
-        <h2 id="step-2-generalizing" class="section"><a class="anchor-link left" href="#step-2-generalizing"><i class="icofont-laika link">&#xef71;</i></a>Step 2: Generalizing</h2>
-        
-        <h3 id="ingredients" class="section"><a class="anchor-link left" href="#ingredients"><i class="icofont-laika link">&#xef71;</i></a>Ingredients</h3>
-        <p>Our goal is to replace the logic of <code>ExpressionEncoder()</code>, based on Scala 2 reflection, with Scala 3 compatible logic.</p>
-        <p>What do we need to create <code>ExpressionEncoder</code>s?</p>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">case</span><span> </span><span class="keyword">class</span><span> </span><span class="type-name">ExpressionEncoder</span><span>[</span><span class="type-name">T</span><span>](
-    </span><span class="identifier">objSerializer</span><span>: </span><span class="type-name">Expression</span><span>,
-    </span><span class="identifier">objDeserializer</span><span>: </span><span class="type-name">Expression</span><span>,
-    </span><span class="identifier">clsTag</span><span>: </span><span class="type-name">ClassTag</span><span>[</span><span class="type-name">T</span><span>])
-  </span><span class="keyword">extends</span><span> </span><span class="type-name">Encoder</span><span>[</span><span class="type-name">T</span><span>] { </span><span class="comment">/*...*/</span><span> }</span></code></pre>
-        <p><code>ClassTag</code> are generated by the compiler, so we only need to propagate them.
-        What are <code>obSerializer</code> and <code>objDeserializer</code>? And what is <code>Expresion</code>?</p>
-        <p>As we mentioned above, encoders transform objects from Scala/Python/Java into internal representations.
-        If you have ever worked with JSON or other serialization formats, you might have encountered this <em>SerDe</em> pattern:
-        we separate the logic required to turn your object into the target format (<em>Serializer</em>) from the logic
-        required to turn an object into the target format into an object you can manipulate in your language
-        (<em>Deserializer</em>).</p>
-        <p>A good example is <a href="https://circe.github.io/circe/api/io/circe/Codec.html">circe&#39;s <code>Codec</code></a> which is the
-        the product of <code>Encoder</code> and <code>Decoder</code> where:</p>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">trait</span><span> </span><span class="type-name">Encoder</span><span>[</span><span class="type-name">A</span><span>] </span><span class="keyword">extends</span><span> </span><span class="type-name">Serializable</span><span> { </span><span class="identifier">self</span><span> =&gt;
-  </span><span class="keyword">def</span><span> </span><span class="declaration-name">apply</span><span>(</span><span class="identifier">a</span><span>: </span><span class="type-name">A</span><span>): </span><span class="type-name">Json</span><span>
-  </span><span class="comment">// more
-</span><span>}
-
-</span><span class="keyword">trait</span><span> </span><span class="type-name">Decoder</span><span>[</span><span class="type-name">A</span><span>] </span><span class="keyword">extends</span><span> </span><span class="type-name">Serializable</span><span> { </span><span class="identifier">self</span><span> =&gt;
-  </span><span class="keyword">def</span><span> </span><span class="declaration-name">apply</span><span>(</span><span class="identifier">c</span><span>: </span><span class="type-name">HCursor</span><span>): </span><span class="type-name">Decoder</span><span>.</span><span class="type-name">Result</span><span>[</span><span class="type-name">A</span><span>]
-  </span><span class="comment">// more
-</span><span>}</span></code></pre>
-        <p>Unlike in circe, our serde logic is written in <code>Expression</code>.
-        Since the logic is executed by Spark SQL internal engine, it needs
-        to be written in a language that the engine understands.</p>
-        <p>This language is defined in the <code>org.apache.spark.sql.catalyst</code> package
-        since <a href="https://www.databricks.com/glossary/catalyst-optimizer">Catalyst</a>
-        is the optimizer that takes our Spark SQL code, optimizes it and emits code to run.</p>
-        
-        <h3 id="learning-a-new-language" class="section"><a class="anchor-link left" href="#learning-a-new-language"><i class="icofont-laika link">&#xef71;</i></a>Learning a new language?</h3>
-        <p>Do we need to learn this new language AND write custom expressions in it?</p>
-        <p>We do not. Remember that Spark already contains all of the logic and definitions
-        for the encoders. The only part that we need to do is to create a layer that bridges
-        Scala 3 user code to these definitions.</p>
-        <p>Let&#39;s consider our <code>Double</code>: how do we write an expression to encode it? We look into Spark!
-        We can find it <a href="https://github.com/apache/spark/blob/39542bb81f8570219770bb6533c077f44f6cbd2a/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/SerializerBuildHelper.scala#L55-L57">here</a></p>
-        <p>The same idea applies for deseriliazers.</p>
-        <p>Now that we know where to find the logic, we can focus on organizing our codebase
-        to generate <code>ExpressionEncoder</code>s without requiring code changes.</p>
-        
-        <h3 id="library-structure" class="section"><a class="anchor-link left" href="#library-structure"><i class="icofont-laika link">&#xef71;</i></a>Library structure</h3>
-        <p>The entrypoint is:</p>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">given</span><span> </span><span class="identifier">encoder</span><span>[</span><span class="type-name">T</span><span>](</span><span class="identifier">using</span><span>
-    </span><span class="identifier">serializer</span><span>: </span><span class="type-name">Serializer</span><span>[</span><span class="type-name">T</span><span>],
-    </span><span class="identifier">deserializer</span><span>: </span><span class="type-name">Deserializer</span><span>[</span><span class="type-name">T</span><span>],
-    </span><span class="identifier">classTag</span><span>: </span><span class="type-name">ClassTag</span><span>[</span><span class="type-name">T</span><span>]
-): </span><span class="type-name">ExpressionEncoder</span><span>[</span><span class="type-name">T</span><span>] = ???</span></code></pre>
-        <p>where <code>Serializer</code> and <code>Deserializer</code> are two abstractions defined in this library.
-        They wrap the <code>Expression</code> objects that we have just mentioned.</p>
-        <p>Let&#39;s focus on <code>Serializer</code> to better understand how the derivation works.
-        The companion object of this class defines instances for the simple types that we saw
-        in the example above (<code>String</code>, <code>Double</code>):</p>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span>  </span><span class="keyword">given</span><span> </span><span class="type-name">Serializer</span><span>[</span><span class="type-name">Double</span><span>] </span><span class="keyword">with</span><span>
-    </span><span class="keyword">def</span><span> </span><span class="declaration-name">inputType</span><span>: </span><span class="type-name">DataType</span><span> = </span><span class="type-name">DoubleType</span><span>
-    </span><span class="keyword">def</span><span> </span><span class="declaration-name">serialize</span><span>(</span><span class="identifier">inputObject</span><span>: </span><span class="type-name">Expression</span><span>): </span><span class="type-name">Expression</span><span> = </span><span class="identifier">inputObject</span><span>
-
-  </span><span class="keyword">given</span><span> </span><span class="type-name">Serializer</span><span>[</span><span class="type-name">String</span><span>] </span><span class="keyword">with</span><span>
-    </span><span class="keyword">def</span><span> </span><span class="declaration-name">inputType</span><span>: </span><span class="type-name">DataType</span><span> = </span><span class="type-name">ObjectType</span><span>(</span><span class="identifier">classOf</span><span>[</span><span class="type-name">String</span><span>])
-    </span><span class="keyword">def</span><span> </span><span class="declaration-name">serialize</span><span>(</span><span class="identifier">inputObject</span><span>: </span><span class="type-name">Expression</span><span>): </span><span class="type-name">Expression</span><span> =
-      </span><span class="identifier">createSerializerForString</span><span>(</span><span class="identifier">inputObject</span><span>)</span></code></pre>
-        <p>but also more complex types, such as collections or products.
-        I like these two examples for different reasons:</p>
-        <ul>
-          <li>The <code>Seq</code> derivation shows the expressive power of Scala&#39;s type system</li>
-        </ul>
-        <ul>
-          <li>The <code>Product</code> derivation shows how to iterate on <code>Tuple</code>s in Scala 3</li>
-        </ul>
-        
-        <h4 id="serializing-a-seq" class="section"><a class="anchor-link left" href="#serializing-a-seq"><i class="icofont-laika link">&#xef71;</i></a>Serializing a <code>Seq</code></h4>
-        <p>to serialize a <code>Seq</code>uence of objects I need to know:</p>
-        <ul>
-          <li>that I am working with a sequence</li>
-        </ul>
-        <ul>
-          <li>how to encode the elements inside the sequence</li>
-        </ul>
-        <p>These two constraints are expressed in the type of the derivation:</p>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span>  </span><span class="keyword">given</span><span> </span><span class="identifier">deriveSeq</span><span>[</span><span class="type-name">F</span><span>[</span><span class="identifier">_</span><span>], </span><span class="type-name">T</span><span>](</span><span class="keyword">using</span><span> </span><span class="identifier">objectSerializer</span><span>: </span><span class="type-name">Serializer</span><span>[</span><span class="type-name">T</span><span>])(</span><span class="identifier">using</span><span>
-      </span><span class="type-name">F</span><span>[</span><span class="type-name">T</span><span>] &lt;:&lt; </span><span class="type-name">Seq</span><span>[</span><span class="type-name">T</span><span>]
-  ): </span><span class="type-name">Serializer</span><span>[</span><span class="type-name">F</span><span>[</span><span class="type-name">T</span><span>]]</span></code></pre>
-        
-        <h4 id="serializing-a-product" class="section"><a class="anchor-link left" href="#serializing-a-product"><i class="icofont-laika link">&#xef71;</i></a>&nbsp;Serializing a <code>Product</code></h4>
-        <p>The product serializer uses the new <a href="https://docs.scala-lang.org/scala3/reference/contextual/derivation.html#mirror-1">Mirror</a>
-        types from Scala 3:</p>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span>  </span><span class="identifier">inline</span><span> </span><span class="keyword">given</span><span> </span><span class="identifier">derivedProduct</span><span>[</span><span class="type-name">T</span><span>](</span><span class="identifier">using</span><span>
-      </span><span class="identifier">mirror</span><span>: </span><span class="type-name">Mirror</span><span>.</span><span class="type-name">ProductOf</span><span>[</span><span class="type-name">T</span><span>],
-      </span><span class="identifier">classTag</span><span>: </span><span class="type-name">ClassTag</span><span>[</span><span class="type-name">T</span><span>]
-  ): </span><span class="type-name">Serializer</span><span>[</span><span class="type-name">T</span><span>] =</span></code></pre>
-        <p>Since the compiler generates mirrors only for products, the <code>using</code> constraint here
-        means that this code will only be invoked for products.
-        <code>ProductOf</code> lets us inspect the types of the elements that form <code>T</code> and treat the product
-        as a tuple. In Scala 3 tuples are very powerful! 
-        I wrote <a href="https://www.scala-lang.org/2021/02/26/tuples-bring-generic-programming-to-scala-3.html">an introduction to tuples</a>.
-        <code>inline</code> has also become more powerful in Scala 3, read more <a href="https://docs.scala-lang.org/scala3/guides/macros/inline.html">here</a></p>
+        <p>Type checks will not work with Spark 3.3.x - this could lead to unexpected failures, e.g. of the <code>collect()</code> function. The recommendation is to use spark version at least 3.4.1.</p>
 
         
 <hr class="footer-rule"/>
