@@ -275,15 +275,21 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
     assertEquals(res.dtypes(1), ("y", "DecimalType(38,0)"))
     assertEquals(res.collect.toSeq, input)
   }
-  
+
   test(
     "derive encoder of case class H"
   ) {
     val encoder = summon[Encoder[H]]
     val input = Seq(
-      H(new java.math.BigDecimal("1.000100000000000000"), new java.math.BigInteger("1")),
+      H(
+        new java.math.BigDecimal("1.000100000000000000"),
+        new java.math.BigInteger("1")
+      ),
       H(new java.math.BigDecimal("0E-18"), new java.math.BigInteger("0")),
-      H(new java.math.BigDecimal("-1.000100000000000000"), new java.math.BigInteger("-1"))
+      H(
+        new java.math.BigDecimal("-1.000100000000000000"),
+        new java.math.BigInteger("-1")
+      )
     )
     val res = input.toDS()
     assertEquals(res.dtypes(0), ("x", "DecimalType(38,18)"))
@@ -319,13 +325,17 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
   }
 
   test("derive encoder of FiniteDuration") {
-    val data = Seq(ColorData(Color.Black), ColorData(Color.Red)).toDS()
+    val data = Seq(ColorData(Color.Black), ColorData(Color.Red))
+      .toDS()
       .map(_.copy(Color.Red))
     assertEquals(
       data.schema,
       StructType(Seq(StructField("color", StringType, true)))
     )
-    assertEquals(data.collect().toSeq, Seq(ColorData(Color.Red), ColorData(Color.Red)))
+    assertEquals(
+      data.collect().toSeq,
+      Seq(ColorData(Color.Red), ColorData(Color.Red))
+    )
   }
 
   test("List[Int]") {
@@ -414,13 +424,25 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
   }
 
   test("derive encoder of FiniteDuration") {
-    val data = Seq(DurationData(1.minute), DurationData(2.seconds)).toDS()
+    val data = Seq(DurationData(1.minute), DurationData(2.seconds))
+      .toDS()
       .map(row => row.copy(duration = row.duration * 2))
     assertEquals(
       data.schema,
-      StructType(Seq(StructField("duration", DayTimeIntervalType(startField = 0, endField = 3), true)))
+      StructType(
+        Seq(
+          StructField(
+            "duration",
+            DayTimeIntervalType(startField = 0, endField = 3),
+            true
+          )
+        )
+      )
     )
-    assertEquals(data.collect().toSeq, Seq(DurationData(2.minute), DurationData(4.seconds)))
+    assertEquals(
+      data.collect().toSeq,
+      Seq(DurationData(2.minute), DurationData(4.seconds))
+    )
   }
 
   if (spark.version.split("\\.")(1).toInt > 3) then
@@ -469,7 +491,8 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
     given Serializer[Instant] with
       def inputType: DataType = ObjectType(classOf[Instant])
       def serialize(inputObject: Expression): Expression =
-        val long = Invoke(inputObject, "toEpochMilli", LongType, returnNullable = false)
+        val long =
+          Invoke(inputObject, "toEpochMilli", LongType, returnNullable = false)
         summon[Serializer[Long]].serialize(long)
 
     given Deserializer[Instant] with

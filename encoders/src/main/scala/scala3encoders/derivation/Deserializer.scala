@@ -3,7 +3,12 @@ package scala3encoders.derivation
 import scala.compiletime.{constValue, erasedValue, summonInline}
 import scala.deriving.Mirror
 import scala.reflect.{ClassTag, Enum}
-import org.apache.spark.sql.catalyst.expressions.{Expression, If, IsNull, Literal}
+import org.apache.spark.sql.catalyst.expressions.{
+  Expression,
+  If,
+  IsNull,
+  Literal
+}
 import org.apache.spark.sql.catalyst.DeserializerBuildHelper.*
 import org.apache.spark.sql.catalyst.WalkedTypePath
 import org.apache.spark.sql.catalyst.expressions.objects.*
@@ -28,7 +33,10 @@ object Deserializer:
     new Deserializer[Option[T]]:
       override def inputType: DataType = d.inputType
       override def deserialize(path: Expression): Expression =
-        val tpe = Helper.typeBoxedJavaMapping.getOrElse(ct.runtimeClass, ct.runtimeClass)
+        val tpe = Helper.typeBoxedJavaMapping.getOrElse(
+          ct.runtimeClass,
+          ct.runtimeClass
+        )
         WrapOption(d.deserialize(path), ObjectType(tpe))
 
   given Deserializer[Int] with
@@ -112,7 +120,8 @@ object Deserializer:
   given Deserializer[FiniteDuration] with
     def inputType: DataType = DayTimeIntervalType()
     def deserialize(path: Expression): Expression =
-      val javaDuration = summon[Deserializer[java.time.Duration]].deserialize(path)
+      val javaDuration =
+        summon[Deserializer[java.time.Duration]].deserialize(path)
       StaticInvoke(
         DurationConverters.getClass,
         ObjectType(classOf[FiniteDuration]),
@@ -155,7 +164,7 @@ object Deserializer:
     def deserialize(path: Expression): Expression =
       createDeserializerForScalaBigInt(path)
 
-  given[E <: Enum : ClassTag]: Deserializer[E] with
+  given [E <: Enum: ClassTag]: Deserializer[E] with
     def inputType: DataType = StringType
 
     def deserialize(path: Expression): Expression =
