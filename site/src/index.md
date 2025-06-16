@@ -8,8 +8,13 @@ Apache Spark.
 Add the following dependency to your `build.sbt`:
 
 ```
+// If you are using Spark 3
 "io.github.vincenzobaz" %% "spark-scala3-encoders" % "@VERSION@"
 "io.github.vincenzobaz" %% "spark-scala3-udf" % "@VERSION@"
+
+// If you are using Spark 4
+"io.github.vincenzobaz" %% "spark4-scala3-encoders" % "@VERSION@"
+"io.github.vincenzobaz" %% "spark4-scala3-udf" % "@VERSION@"
 ```
 
 ## Apache Spark version
