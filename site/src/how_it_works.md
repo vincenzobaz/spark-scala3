@@ -213,7 +213,7 @@ to reduce boilerplate code:
 **We see that we can define custom `Encoder`s without relying on `spark.implicits` and that we
 can use contextual abstractions to propagate them without code changes.**
 
-## Step 2: Generalizing
+## Step 2: Generalizing for Spark 3.x
 
 ### Ingredients
 
@@ -347,3 +347,11 @@ means that this code will only be invoked for products.
 as a tuple. In Scala 3 tuples are very powerful! 
 I wrote [an introduction to tuples](https://www.scala-lang.org/2021/02/26/tuples-bring-generic-programming-to-scala-3.html).
 `inline` has also become more powerful in Scala 3, read more [here](https://docs.scala-lang.org/scala3/guides/macros/inline.html)
+
+## Generalizing for Spark 4.x
+
+Spark 4 introduces a new API for deriving `Encoder`s: `AgnosticEncoder`s.
+This simplifies considerably our work as we do not need to build `Expression`s anymore.
+
+Tbe logic in `EncoderDerivation` now is only needed to automatically assemble the
+values and classes defined in `AgnosticEncoders`.

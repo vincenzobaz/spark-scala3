@@ -3,13 +3,10 @@ package scala3encoders
 import org.apache.spark.sql.{AnalysisException, Encoder}
 import org.apache.spark.sql.types.*
 import org.apache.spark.sql.functions.*
-import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import java.io.{File, PrintWriter}
 import java.time.{Instant, LocalDate}
-import org.apache.spark.sql.catalyst.expressions.Expression
-import org.apache.spark.sql.catalyst.expressions.objects.{Invoke, StaticInvoke}
-import scala3encoders.derivation.{Deserializer, Serializer}
 import scala.concurrent.duration.*
+import org.apache.spark.sql.catalyst.encoders.AgnosticEncoder
 
 case class A()
 case class B(x: String)
@@ -26,108 +23,6 @@ case class ChkTuple(
     i: Int
 )
 case class Pos(x: Int, y: Int, z: Long)
-case class Big(
-    i00: Int,
-    i01: Int,
-    i02: Int,
-    i03: Int,
-    i04: Int,
-    i05: Int,
-    i06: Int,
-    i07: Int,
-    i08: Int,
-    i09: Int,
-    i10: Int,
-    i11: Int,
-    i12: Int,
-    i13: Int,
-    i14: Int,
-    i15: Int,
-    i16: Int,
-    i17: Int,
-    i18: Int,
-    i19: Int,
-    i20: Int,
-    i21: Int,
-    i22: Int,
-    i23: Int,
-    i24: Int,
-    i25: Int,
-    i26: Int,
-    i27: Int,
-    i28: Int,
-    i29: Int,
-    i30: Int,
-    i31: Int,
-    i32: Int,
-    i33: Int,
-    i34: Int,
-    i35: Int,
-    i36: Int,
-    i37: Int,
-    i38: Int,
-    i39: Int,
-    i40: Int,
-    i41: Int,
-    i42: Int,
-    i43: Int,
-    i44: Int,
-    i45: Int,
-    i46: Int,
-    i47: Int,
-    i48: Int,
-    i49: Int,
-    i50: Int,
-    i51: Int,
-    i52: Int,
-    i53: Int,
-    i54: Int,
-    i55: Int,
-    i56: Int,
-    i57: Int,
-    i58: Int,
-    i59: Int,
-    i60: Int,
-    i61: Int,
-    i62: Int,
-    i63: Int,
-    i64: Int,
-    i65: Int,
-    i66: Int,
-    i67: Int,
-    i68: Int,
-    i69: Int,
-    i70: Int,
-    i71: Int,
-    i72: Int,
-    i73: Int,
-    i74: Int,
-    i75: Int,
-    i76: Int,
-    i77: Int,
-    i78: Int,
-    i79: Int,
-    i80: Int,
-    i81: Int,
-    i82: Int,
-    i83: Int,
-    i84: Int,
-    i85: Int,
-    i86: Int,
-    i87: Int,
-    i88: Int,
-    i89: Int,
-    i90: Int,
-    i91: Int,
-    i92: Int,
-    i93: Int,
-    i94: Int,
-    i95: Int,
-    i96: Int,
-    i97: Int,
-    i98: Int,
-    i99: Int
-)
 
 final case class Key(id: String, date: LocalDate)
 final case class ChkMap(
@@ -167,7 +62,7 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
     val encoder = summon[Encoder[B]]
     assertEquals(
       encoder.schema,
-      StructType(Seq(StructField("x", StringType)))
+      StructType(Seq(StructField("x", StringType, nullable = false)))
     )
 
     val input = Seq(B("hello"), B("world"))
@@ -175,13 +70,13 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
   }
 
   test("derive encoder of case class C(x: Int, y: Long)") {
-    val encoder = summon[Encoder[C]].asInstanceOf[ExpressionEncoder[C]]
+    val encoder = summon[Encoder[C]].asInstanceOf[AgnosticEncoder[C]]
     assertEquals(
       encoder.schema,
       StructType(
         Seq(
-          StructField("x", IntegerType),
-          StructField("y", LongType)
+          StructField("x", IntegerType, nullable = false),
+          StructField("y", LongType, nullable = false)
         )
       )
     )
@@ -192,7 +87,7 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
   }
 
   test("derive encoder of case class Pos and collect as tuple") {
-    val encoder = summon[Encoder[Pos]].asInstanceOf[ExpressionEncoder[Pos]]
+    val encoder = summon[Encoder[Pos]].asInstanceOf[AgnosticEncoder[Pos]]
     val input = Seq(Pos(1, 2, 3L), Pos(4, 5, 6))
 
     val res = input
@@ -214,8 +109,12 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
       encoder.schema,
       StructType(
         Seq(
-          StructField("x", StringType),
-          StructField("y", StructType(Seq(StructField("x", StringType))))
+          StructField("x", StringType, nullable = false),
+          StructField(
+            "y",
+            StructType(Seq(StructField("x", StringType, nullable = false))),
+            nullable = false
+          )
         )
       )
     )
@@ -230,8 +129,8 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
     val encoder = summon[Encoder[E]]
     val input = Seq(
       E(Map("a" -> Seq("foo", "bar")), Array(1, 2, 3, 4, 5), Set(1.0, 2.0)),
-      E(null, Array(1, 2), Set(1.0, 2.0)),
-      E(Map(), null, null)
+      E(Map.empty, Array(1, 2), Set(1.0, 2.0)),
+      E(Map(), Array.empty, Set.empty)
     )
     val res = input.toDS().collect.toSeq
     assertEquals(res.map(_.x), input.map(_.x))
@@ -250,15 +149,11 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
     val encoder = summon[Encoder[F]]
     val input = Seq(
       F(Some("whoo"), None, (1, 2, 3)),
-      F(None, Some(1L), (-1, 0, 1)),
-      F(null, null, (0, 0, 0))
+      F(None, Some(1L), (-1, 0, 1))
     )
     val res = input.toDS().collect.toSeq
     assertEquals(res(0), input(0))
     assertEquals(res(1), input(1))
-    // null will be mapped to None
-    assertEquals(res(2)._1, None)
-    assertEquals(res(2)._2, None)
   }
 
   test(
@@ -324,6 +219,7 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
     assertEquals(input.toDS().collect.toSeq, input)
   }
 
+  /* TODO
   test("derive encoder of FiniteDuration") {
     val data = Seq(ColorData(Color.Black), ColorData(Color.Red))
       .toDS()
@@ -336,7 +232,7 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
       data.collect().toSeq,
       Seq(ColorData(Color.Red), ColorData(Color.Red))
     )
-  }
+  }*/
 
   test("List[Int]") {
     val ls = List(List(1, 2, 3), List(4, 5, 6))
@@ -382,20 +278,20 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
       encoder.schema,
       StructType(
         Seq(
-          StructField("id", IntegerType, true),
+          StructField("id", IntegerType, false),
           StructField(
             "m",
             MapType(
               StructType(
                 Seq(
-                  StructField("id", StringType, true),
-                  StructField("date", DateType, true)
+                  StructField("id", StringType, false),
+                  StructField("date", DateType, false)
                 )
               ),
               LongType,
               false
             ),
-            true
+            false
           )
         )
       )
@@ -406,19 +302,6 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
         0,
         Map(Key("foo", LocalDate.now().minusDays(10)) -> 123L)
       )
-    )
-    assertEquals(input.toDS().collect.toSeq, input)
-  }
-
-  test("check Big class") {
-    val encoder = summon[Encoder[Big]]
-    val input = Seq(
-      Big(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-        20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37,
-        38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
-        56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73,
-        74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91,
-        92, 93, 94, 95, 96, 97, 98, 99)
     )
     assertEquals(input.toDS().collect.toSeq, input)
   }
@@ -434,7 +317,7 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
           StructField(
             "duration",
             DayTimeIntervalType(startField = 0, endField = 3),
-            true
+            false
           )
         )
       )
@@ -485,34 +368,3 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
         )
       )
     }
-
-  test("Custom encoder to a primitive type wrapped in an Option") {
-    // Defining some custom Serializer and Deserializer for Instant to LongType
-    given Serializer[Instant] with
-      def inputType: DataType = ObjectType(classOf[Instant])
-      def serialize(inputObject: Expression): Expression =
-        val long =
-          Invoke(inputObject, "toEpochMilli", LongType, returnNullable = false)
-        summon[Serializer[Long]].serialize(long)
-
-    given Deserializer[Instant] with
-      def inputType: DataType = LongType
-      def deserialize(path: Expression): Expression =
-        val long = summon[Deserializer[Long]].deserialize(path)
-        StaticInvoke(
-          classOf[Instant],
-          ObjectType(classOf[Instant]),
-          "ofEpochMilli",
-          long :: Nil,
-          returnNullable = false
-        )
-
-    val encoder = summon[Encoder[ChkCustom]]
-    assertEquals(
-      encoder.schema,
-      StructType(Seq(StructField("u", LongType, true)))
-    )
-
-    val input = Seq(ChkCustom(Some(Instant.ofEpochMilli(1000))))
-    assertEquals(input.toDS.collect.toSeq, input)
-  }

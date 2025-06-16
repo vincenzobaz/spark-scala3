@@ -76,7 +76,7 @@ object StarWarsData:
           case s    => Some(s)
         }
         def getDoubleOpt(s: String): Option[Double] = getOpt(s).map(_.toDouble)
-        
+
         Character(
           name,
           height,
