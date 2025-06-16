@@ -88,7 +88,8 @@
     <li class="level1 nav-leaf"><a href="#solution-provide-scala-3-reflection-logic-to-generate-encoders">Solution: provide Scala 3 reflection logic to generate encoders</a></li>
     <li class="level1 nav-node"><a href="#deriving-encoders-in-scala-3">Deriving <code>Encoder</code>s in Scala 3</a></li>
     <li class="level2 nav-leaf"><a href="#step-1-build-an-encoder">Step 1: build an encoder</a></li>
-    <li class="level2 nav-leaf"><a href="#step-2-generalizing">Step 2: Generalizing</a></li>
+    <li class="level2 nav-leaf"><a href="#step-2-generalizing-for-spark-3-x">Step 2: Generalizing for Spark 3.x</a></li>
+    <li class="level2 nav-leaf"><a href="#generalizing-for-spark-4-x">&nbsp;Generalizing for Spark 4.x</a></li>
   </ul>
 
   <p class="footer"></p>
@@ -142,7 +143,7 @@
         
         <h2 id="tldr-how-to-fix-the-error-with-this-libray" class="section"><a class="anchor-link left" href="#tldr-how-to-fix-the-error-with-this-libray"><i class="icofont-laika link">&#xef71;</i></a>TLDR: How to fix the error with this libray:</h2>
         <ol class="arabic">
-          <li>Add the library as dependency: <code>io.github.vincenzobaz&quot; %% &quot;spark-scala3-encoders&quot; % &quot;0.2.6&quot;</code></li>
+          <li>Add the library as dependency: <code>io.github.vincenzobaz&quot; %% &quot;spark-scala3-encoders&quot; % &quot;0.3.0&quot;</code></li>
         </ol>
         <ol class="arabic">
           <li>Import the library after Spark implicits:</li>
@@ -262,7 +263,7 @@
         <p><strong>We see that we can define custom <code>Encoder</code>s without relying on <code>spark.implicits</code> and that we
         can use contextual abstractions to propagate them without code changes.</strong></p>
         
-        <h2 id="step-2-generalizing" class="section"><a class="anchor-link left" href="#step-2-generalizing"><i class="icofont-laika link">&#xef71;</i></a>Step 2: Generalizing</h2>
+        <h2 id="step-2-generalizing-for-spark-3-x" class="section"><a class="anchor-link left" href="#step-2-generalizing-for-spark-3-x"><i class="icofont-laika link">&#xef71;</i></a>Step 2: Generalizing for Spark 3.x</h2>
         
         <h3 id="ingredients" class="section"><a class="anchor-link left" href="#ingredients"><i class="icofont-laika link">&#xef71;</i></a>Ingredients</h3>
         <p>Our goal is to replace the logic of <code>ExpressionEncoder()</code>, based on Scala 2 reflection, with Scala 3 compatible logic.</p>
@@ -363,6 +364,12 @@
         as a tuple. In Scala 3 tuples are very powerful! 
         I wrote <a href="https://www.scala-lang.org/2021/02/26/tuples-bring-generic-programming-to-scala-3.html">an introduction to tuples</a>.
         <code>inline</code> has also become more powerful in Scala 3, read more <a href="https://docs.scala-lang.org/scala3/guides/macros/inline.html">here</a></p>
+        
+        <h2 id="generalizing-for-spark-4-x" class="section"><a class="anchor-link left" href="#generalizing-for-spark-4-x"><i class="icofont-laika link">&#xef71;</i></a>&nbsp;Generalizing for Spark 4.x</h2>
+        <p>Spark 4 introduces a new API for deriving <code>Encoder</code>s: <code>AgnosticEncoder</code>s.
+        This simplifies considerably our work as we do not need to build <code>Expression</code>s anymore.</p>
+        <p>Tbe logic in <code>EncoderDerivation</code> now is only needed to automatically assemble the
+        values and classes defined in <code>AgnosticEncoders</code>.</p>
 
         
 <hr class="footer-rule"/>

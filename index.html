@@ -98,8 +98,13 @@
         
         <h2 id="how-to-get-this-library" class="section"><a class="anchor-link left" href="#how-to-get-this-library"><i class="icofont-laika link">&#xef71;</i></a>How to get this library</h2>
         <p>Add the following dependency to your <code>build.sbt</code>:</p>
-        <pre><code>&quot;io.github.vincenzobaz&quot; %% &quot;spark-scala3-encoders&quot; % &quot;0.2.6&quot;
-&quot;io.github.vincenzobaz&quot; %% &quot;spark-scala3-udf&quot; % &quot;0.2.6&quot;</code></pre>
+        <pre><code>// If you are using Spark 3
+&quot;io.github.vincenzobaz&quot; %% &quot;spark-scala3-encoders&quot; % &quot;0.3.0&quot;
+&quot;io.github.vincenzobaz&quot; %% &quot;spark-scala3-udf&quot; % &quot;0.3.0&quot;
+
+// If you are using Spark 4
+&quot;io.github.vincenzobaz&quot; %% &quot;spark4-scala3-encoders&quot; % &quot;0.3.0&quot;
+&quot;io.github.vincenzobaz&quot; %% &quot;spark4-scala3-udf&quot; % &quot;0.3.0&quot;</code></pre>
         
         <h2 id="apache-spark-version" class="section"><a class="anchor-link left" href="#apache-spark-version"><i class="icofont-laika link">&#xef71;</i></a>Apache Spark version</h2>
         <p>As of version 3.2, Spark is published for Scala 2.13, which makes it possible to be used from Scala 3 as a library.</p>
