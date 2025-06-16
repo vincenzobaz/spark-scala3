@@ -6,7 +6,6 @@ import scala.reflect.ClassTag
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.catalyst.expressions.BoundReference
 import org.apache.spark.sql.catalyst.analysis.GetColumnByOrdinal
-import org.apache.spark.sql.types.DataType
 
 // TODO: Nullable field
 given encoder[T](using

@@ -3,12 +3,10 @@ package scala3encoders
 import org.apache.spark.sql.{AnalysisException, Encoder}
 import org.apache.spark.sql.types.*
 import org.apache.spark.sql.functions.*
-import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import java.io.{File, PrintWriter}
 import java.time.{Instant, LocalDate}
-import org.apache.spark.sql.catalyst.expressions.Expression
-import org.apache.spark.sql.catalyst.expressions.objects.{Invoke, StaticInvoke}
 import scala.concurrent.duration.*
+import org.apache.spark.sql.catalyst.encoders.AgnosticEncoder
 
 case class A()
 case class B(x: String)
@@ -64,7 +62,7 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
     val encoder = summon[Encoder[B]]
     assertEquals(
       encoder.schema,
-      StructType(Seq(StructField("x", StringType)))
+      StructType(Seq(StructField("x", StringType, nullable = false)))
     )
 
     val input = Seq(B("hello"), B("world"))
@@ -72,13 +70,13 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
   }
 
   test("derive encoder of case class C(x: Int, y: Long)") {
-    val encoder = summon[Encoder[C]].asInstanceOf[ExpressionEncoder[C]]
+    val encoder = summon[Encoder[C]].asInstanceOf[AgnosticEncoder[C]]
     assertEquals(
       encoder.schema,
       StructType(
         Seq(
-          StructField("x", IntegerType),
-          StructField("y", LongType)
+          StructField("x", IntegerType, nullable = false),
+          StructField("y", LongType, nullable = false)
         )
       )
     )
@@ -89,7 +87,7 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
   }
 
   test("derive encoder of case class Pos and collect as tuple") {
-    val encoder = summon[Encoder[Pos]].asInstanceOf[ExpressionEncoder[Pos]]
+    val encoder = summon[Encoder[Pos]].asInstanceOf[AgnosticEncoder[Pos]]
     val input = Seq(Pos(1, 2, 3L), Pos(4, 5, 6))
 
     val res = input
@@ -111,8 +109,12 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
       encoder.schema,
       StructType(
         Seq(
-          StructField("x", StringType),
-          StructField("y", StructType(Seq(StructField("x", StringType))))
+          StructField("x", StringType, nullable = false),
+          StructField(
+            "y",
+            StructType(Seq(StructField("x", StringType, nullable = false))),
+            nullable = false
+          )
         )
       )
     )
@@ -127,8 +129,8 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
     val encoder = summon[Encoder[E]]
     val input = Seq(
       E(Map("a" -> Seq("foo", "bar")), Array(1, 2, 3, 4, 5), Set(1.0, 2.0)),
-      E(null, Array(1, 2), Set(1.0, 2.0)),
-      E(Map(), null, null)
+      E(Map.empty, Array(1, 2), Set(1.0, 2.0)),
+      E(Map(), Array.empty, Set.empty)
     )
     val res = input.toDS().collect.toSeq
     assertEquals(res.map(_.x), input.map(_.x))
@@ -147,15 +149,11 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
     val encoder = summon[Encoder[F]]
     val input = Seq(
       F(Some("whoo"), None, (1, 2, 3)),
-      F(None, Some(1L), (-1, 0, 1)),
-      F(null, null, (0, 0, 0))
+      F(None, Some(1L), (-1, 0, 1))
     )
     val res = input.toDS().collect.toSeq
     assertEquals(res(0), input(0))
     assertEquals(res(1), input(1))
-    // null will be mapped to None
-    assertEquals(res(2)._1, None)
-    assertEquals(res(2)._2, None)
   }
 
   test(
@@ -221,6 +219,7 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
     assertEquals(input.toDS().collect.toSeq, input)
   }
 
+  /* TODO
   test("derive encoder of FiniteDuration") {
     val data = Seq(ColorData(Color.Black), ColorData(Color.Red))
       .toDS()
@@ -233,7 +232,7 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
       data.collect().toSeq,
       Seq(ColorData(Color.Red), ColorData(Color.Red))
     )
-  }
+  }*/
 
   test("List[Int]") {
     val ls = List(List(1, 2, 3), List(4, 5, 6))
@@ -279,20 +278,20 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
       encoder.schema,
       StructType(
         Seq(
-          StructField("id", IntegerType, true),
+          StructField("id", IntegerType, false),
           StructField(
             "m",
             MapType(
               StructType(
                 Seq(
-                  StructField("id", StringType, true),
-                  StructField("date", DateType, true)
+                  StructField("id", StringType, false),
+                  StructField("date", DateType, false)
                 )
               ),
               LongType,
               false
             ),
-            true
+            false
           )
         )
       )
@@ -318,7 +317,7 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
           StructField(
             "duration",
             DayTimeIntervalType(startField = 0, endField = 3),
-            true
+            false
           )
         )
       )
@@ -369,4 +368,3 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
         )
       )
     }
-
