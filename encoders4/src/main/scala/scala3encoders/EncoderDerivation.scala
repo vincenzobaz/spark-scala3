@@ -66,7 +66,7 @@ given [O: AgnosticEncoder]: AgnosticEncoder[Option[O]] =
   AgnosticEncoders.OptionEncoder(summon[AgnosticEncoder[O]])
 given [O: AgnosticEncoder]: AgnosticEncoder[Array[O]] =
   val enc = summon[AgnosticEncoder[O]]
-  AgnosticEncoders.ArrayEncoder(summon[AgnosticEncoder[O]], containsNull = enc.nullable)
+  AgnosticEncoders.ArrayEncoder(enc, containsNull = enc.nullable)
 
 given [C[_], E](using
     ev: C[E] <:< Iterable[E],
