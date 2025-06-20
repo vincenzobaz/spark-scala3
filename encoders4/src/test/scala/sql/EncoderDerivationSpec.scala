@@ -62,7 +62,7 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
     val encoder = summon[Encoder[B]]
     assertEquals(
       encoder.schema,
-      StructType(Seq(StructField("x", StringType, nullable = false)))
+      StructType(Seq(StructField("x", StringType, nullable = true)))
     )
 
     val input = Seq(B("hello"), B("world"))
@@ -109,11 +109,11 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
       encoder.schema,
       StructType(
         Seq(
-          StructField("x", StringType, nullable = false),
+          StructField("x", StringType, nullable = true),
           StructField(
             "y",
-            StructType(Seq(StructField("x", StringType, nullable = false))),
-            nullable = false
+            StructType(Seq(StructField("x", StringType, nullable = true))),
+            nullable = true
           )
         )
       )
@@ -284,14 +284,14 @@ class EncoderDerivationSpec extends munit.FunSuite with SparkSqlTesting:
             MapType(
               StructType(
                 Seq(
-                  StructField("id", StringType, false),
-                  StructField("date", DateType, false)
+                  StructField("id", StringType, nullable = true),
+                  StructField("date", DateType, nullable = true)
                 )
               ),
               LongType,
-              false
+              valueContainsNull = false
             ),
-            false
+            nullable = true
           )
         )
       )

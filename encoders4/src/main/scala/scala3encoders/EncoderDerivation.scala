@@ -65,14 +65,15 @@ given AgnosticEncoder[JBigDecimal] =
 given [O: AgnosticEncoder]: AgnosticEncoder[Option[O]] =
   AgnosticEncoders.OptionEncoder(summon[AgnosticEncoder[O]])
 given [O: AgnosticEncoder]: AgnosticEncoder[Array[O]] =
-  AgnosticEncoders.ArrayEncoder(summon[AgnosticEncoder[O]], false)
+  val enc = summon[AgnosticEncoder[O]]
+  AgnosticEncoders.ArrayEncoder(enc, containsNull = enc.nullable)
 
 given [C[_], E](using
     ev: C[E] <:< Iterable[E],
     classTag: ClassTag[C[E]],
     element: AgnosticEncoder[E]
 ): AgnosticEncoder[C[E]] =
-  AgnosticEncoders.IterableEncoder(classTag, element, false, false)
+  AgnosticEncoders.IterableEncoder(classTag, element, containsNull = element.nullable, lenientSerialization = false)
 
 given [M[_, _], K, V](using
     ev: M[K, V] <:< Map[K, V],
@@ -80,14 +81,14 @@ given [M[_, _], K, V](using
     key: AgnosticEncoder[K],
     value: AgnosticEncoder[V]
 ): AgnosticEncoder[M[K, V]] =
-  AgnosticEncoders.MapEncoder(classTag, key, value, false)
+  AgnosticEncoders.MapEncoder(classTag, key, value, valueContainsNull = value.nullable)
 
 private inline def summonAll[T <: Tuple, U <: Tuple]: List[EncoderField] =
   def encoder[T](label: String, enc: AgnosticEncoder[T]) =
     EncoderField(
       label,
       enc,
-      false,
+      nullable = enc.nullable,
       MetadataBuilder()
         .build() // TODO: Is this ok? what about the two other fields
     )

@@ -25,8 +25,8 @@ class DerivationTests extends munit.FunSuite:
       encoder.schema,
       StructType(
         Seq(
-          StructField("x", DecimalType(38, 18), nullable = false),
-          StructField("y", DecimalType(38, 0), nullable = false)
+          StructField("x", DecimalType(38, 18), nullable = true),
+          StructField("y", DecimalType(38, 0), nullable = true)
         )
       )
     )
@@ -39,8 +39,8 @@ class DerivationTests extends munit.FunSuite:
       encoder.schema,
       StructType(
         Seq(
-          StructField("x", DecimalType(38, 18), nullable = false),
-          StructField("y", DecimalType(38, 0), nullable = false)
+          StructField("x", DecimalType(38, 18), nullable = true),
+          StructField("y", DecimalType(38, 0), nullable = true)
         )
       )
     )
@@ -123,7 +123,7 @@ class DerivationTests extends munit.FunSuite:
             MapType(
               IntegerType,
               StringType,
-              false
+              valueContainsNull = true
             ),
             nullable = true
           )
