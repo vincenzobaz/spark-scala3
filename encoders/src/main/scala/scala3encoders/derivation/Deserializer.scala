@@ -250,7 +250,7 @@ object Deserializer:
         )
 
 // inspired by https://github.com/apache/spark/blob/39542bb81f8570219770bb6533c077f44f6cbd2a/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/ScalaReflection.scala#L356-L390
-  inline given derivedProduct[T](using
+  inline given derived[T](using
       mirror: Mirror.ProductOf[T],
       classTag: ClassTag[T]
   ): Deserializer[T] =
